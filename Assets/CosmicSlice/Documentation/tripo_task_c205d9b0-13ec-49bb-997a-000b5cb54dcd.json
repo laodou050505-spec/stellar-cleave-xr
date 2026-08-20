@@ -1,0 +1,19 @@
+{
+  "task_id": "c205d9b0-13ec-49bb-997a-000b5cb54dcd",
+  "status": "success",
+  "type": "text_to_image",
+  "progress": 100,
+  "input": {
+    "prompt": "A single premium science-fiction orbital anomaly research HUD backdrop for a room-scale VR arcade game, landscape 16:9 widescreen composition, deep neutral black glass, precision cyan energy lines, restrained amber warning accents and small violet quantum accents, central area mostly empty and dark for readable game information, subtle circular portal telemetry at the top center, refined aerospace industrial design, crisp high-end game UI, symmetrical but dynamic, no text, no letters, no numbers, no logos, no characters, no mockup device, flat front-facing interface texture",
+    "model_version": "banana2"
+  },
+  "output": {
+    "generated_image_url": "https://tripo-data.rg1.data.tripo3d.com/tcli_c6fae067c9334bd9af3d07029c0e7b00/20260810/c205d9b0-13ec-49bb-997a-000b5cb54dcd/generated_image.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYzZmYWUwNjdjOTMzNGJkOWFmM2QwNzAyOWMwZTdiMDAvMjAyNjA4MTAvYzIwNWQ5YjAtMTNlYy00OWJiLTk5N2EtMDAwYjVjYjU0ZGNkL2dlbmVyYXRlZF9pbWFnZS5wbmciLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3ODY0NjU0ODV9fX1dfQ__&Signature=NCZfzI-P0~1PclcxIxw45ky-2l6F9N~kbeofngPWnkkVStj6p2zA9cB7ACHijniPR54~8Ko~hRC~Q15K2iFKSPXq6h-s2Oj0Lx3uM-WXQpJ9yOvX-tYm4Cn9faTapTdlIO9uNrCZQBefqbUztQo-~zY3p~Z7AibQmBSqfM7f~naspKJPzESd4EnGKlh7rr3eehiudM6lV6zbTGjJyN4e~RjJCCDres~-Vurwp08jVS7SljHTQ8Fjyj1~8MsiCoB0UJjxnBT4OOaEKv-gKHMv4ROm~d-hQbRF7msd1DmxfEb54YHlSazUQbzTWmKw-YHwgCF6i3Nw6jP91mRX-tCuiw__&Key-Pair-Id=K1676C64NMVM2J"
+  },
+  "created_at": "2026-08-10T16:24:21.011305Z",
+  "completed_at": "2026-08-10T16:24:44.941749Z",
+  "credits_consumed": 10.0,
+  "downloaded_files": [
+    "/Users/ld/Documents/Codex/2026-08-10/pico-xr-unity-3js/work/tripo-ui/01_generated_image_url.png"
+  ]
+}

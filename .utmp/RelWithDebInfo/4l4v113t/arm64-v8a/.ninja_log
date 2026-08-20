@@ -1,0 +1,3 @@
+# ninja log v5
+1	70	1787211625798356935	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	83e270d857a1ad9f
+70	142	1787211625852526533	/Users/ld/Documents/Codex/2026-08-10/pico-xr-unity-3js/CosmicSlicePicoReview/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/4l4v113t/obj/arm64-v8a/libswappywrapper.so	2c0ba5a804dc12f8

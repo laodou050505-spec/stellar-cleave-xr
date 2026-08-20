@@ -1,0 +1,19 @@
+{
+  "task_id": "182a9539-e651-4a35-8a6f-0fb95656317f",
+  "status": "success",
+  "type": "text_to_image",
+  "progress": 100,
+  "input": {
+    "prompt": "2:1 equirectangular panoramic deep-space skybox for a premium mixed reality game, immense black-blue cosmic void, sparse realistic stars, sweeping cyan and violet nebula wisps around far edges, several tiny distant galaxies, no central planet, no text, no logos, no horizon, seamless left-right wrap, top and bottom remain near-black to preserve mixed reality room visibility, cinematic photorealistic, high contrast, clean",
+    "model_version": "banana_pro"
+  },
+  "output": {
+    "generated_image_url": "https://tripo-data.rg1.data.tripo3d.com/tcli_c6fae067c9334bd9af3d07029c0e7b00/20260811/182a9539-e651-4a35-8a6f-0fb95656317f/generated_image.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYzZmYWUwNjdjOTMzNGJkOWFmM2QwNzAyOWMwZTdiMDAvMjAyNjA4MTEvMTgyYTk1MzktZTY1MS00YTM1LThhNmYtMGZiOTU2NTYzMTdmL2dlbmVyYXRlZF9pbWFnZS5wbmciLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3ODY1MTUyMDR9fX1dfQ__&Signature=ZBzVqmXcAU8tJSHNUHQWM7xiYOwnAyuurpcX1qxqy-jLLVwJnMC9brhEKJw7lrmj6wKCe5Go7S-BTHRDDC6hEnincThPntN7YVLlx2yyWExLbdeqv6cKorr0xOWIRbqwUJgNuitamy-R1VxHatacqge4Q0rUM68wYvhMxTETclqe8lumKpuhTRkBZsyVZd6x443rY2jNJPIjx1gAFoAPYfpPuRQAKsoqLd2F~jhMPnui3Do~5nLQnGTA7Qu4O74E1-eix-BFvrxgj2E-U9-dW4nyJOcKXgGcUVqHvtcJnSOshzRkGIiw3cg7jR1nBwpznRzunz7VR15YpVm3L8680w__&Key-Pair-Id=K1676C64NMVM2J"
+  },
+  "created_at": "2026-08-11T06:12:43.810931Z",
+  "completed_at": "2026-08-11T06:13:24.054947Z",
+  "credits_consumed": 15.0,
+  "downloaded_files": [
+    "/Users/ld/Documents/Codex/2026-08-10/pico-xr-unity-3js/切水果/Assets/CosmicSlice/Art/Environment/01_generated_image_url.png"
+  ]
+}
