@@ -147,7 +147,16 @@ namespace CosmicSlice
             QaCheck(_containmentGridRoot != null && _containmentGridRoot.Find("Left Phase Wall") != null && _containmentGridRoot.Find("Rear Phase Wall") != null, "extended transparent grid forms a room-scale containment cube");
             QaCheck(_containmentGridRoot != null && _containmentGridRoot.GetComponentsInChildren<LineRenderer>(true).Length >= 240, "side grids provide fine room-scale coverage with natural fading edges");
             QaCheck(GameObject.Find("Desktop Room Wall") == null, "legacy opaque room wall is absent");
-            QaCheck(GameObject.Find("Left First Person Flight Glove") != null && GameObject.Find("Right First Person Flight Glove") != null, "both tracked blades include first-person glove visuals");
+            QaCheck(
+                GameObject.Find("Mission Console Physical Backing") == null &&
+                GameObject.Find("Mission Console Cyan Halo") == null,
+                "gameplay HUD uses only independent instrument panels without a giant console backing");
+            QaCheck(
+                GameObject.Find("Left First Person Flight Glove") == null &&
+                GameObject.Find("Right First Person Flight Glove") == null &&
+                GameObject.Find("Left Peripheral Blade Visual") != null &&
+                GameObject.Find("Right Peripheral Blade Visual") != null,
+                "tracked blades use compact peripheral visuals instead of view-blocking glove models");
             QaCheck(_leftBlade.IsDesktopSlicePlaneAligned(SlicePlaneCenter, _camera.transform.forward), "desktop blade interaction is projected onto the falling-target plane");
             QaCheck(
                 _portalRoot != null &&
@@ -194,6 +203,17 @@ namespace CosmicSlice
             collisionProbe.transform.localScale = Vector3.one;
             _leftBlade.QaSlice(collisionProbe.transform.position - Vector3.right * 0.45f, collisionProbe.transform.position + Vector3.right * 0.45f);
             QaCheck(collisionProbe.Resolved && _score == 100, "laser blade overlap path resolves a target through the real slice detector");
+            ClearTargets();
+            _score = 0;
+            _combo = 0;
+            _bestCombo = 0;
+            _lives = MaxLives;
+            UpdateHud();
+
+            var rayProbe = CreateTarget(TargetKind.Meteor, new Vector3(0f, 2.18f, 0.55f), Vector3.zero, false);
+            rayProbe.transform.localScale = Vector3.one;
+            _rightBlade.QaRaySlice(new Vector3(0f, 2.18f, -4.7f), Vector3.forward);
+            QaCheck(rayProbe.Resolved && _score == 130, "right controller ray plus trigger path resolves a distant meteor through the world target collider");
             ClearTargets();
             _score = 0;
             _combo = 0;

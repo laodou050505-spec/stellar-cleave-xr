@@ -46,6 +46,17 @@ namespace CosmicSlice
         private Ray GetWorldPointerRay(out bool pressed)
         {
             pressed = false;
+            // In the emulator, controller tracking often remains valid even while the user is
+            // operating the host window.  A live mouse gesture must therefore win over that
+            // dormant tracked ray so START can be selected with the desktop fallback.
+            if (Mouse.current != null &&
+                (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed ||
+                 Mouse.current.delta.ReadValue().sqrMagnitude > 0.01f))
+            {
+                pressed = Mouse.current.leftButton.wasPressedThisFrame;
+                return _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
+            }
+
             foreach (var node in new[] { UnityEngine.XR.XRNode.RightHand, UnityEngine.XR.XRNode.LeftHand })
             {
                 var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
@@ -203,21 +214,29 @@ namespace CosmicSlice
 
         private bool WasXrConfirmPressed()
         {
-            if (_xrStartCooldown > 0f)
-            {
-                return false;
-            }
-
+            var anyTriggerHeld = false;
             foreach (var node in new[] { UnityEngine.XR.XRNode.LeftHand, UnityEngine.XR.XRNode.RightHand })
             {
                 var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
                 if (device.isValid && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out var held) && held)
                 {
-                    _xrStartCooldown = 0.5f;
-                    return true;
+                    anyTriggerHeld = true;
+                    break;
                 }
             }
-            return false;
+
+            // Do not let a trigger state left behind by the emulator skip the title.
+            // A player must release, then make a new trigger press to enter the game.
+            if (!anyTriggerHeld)
+            {
+                _xrTriggerWasHeld = false;
+                _xrTriggerArmed = true;
+                return false;
+            }
+
+            var pressedThisFrame = _xrTriggerArmed && !_xrTriggerWasHeld;
+            _xrTriggerWasHeld = anyTriggerHeld;
+            return pressedThisFrame && _xrStartCooldown <= 0f;
         }
 
         private void SelectCoverOption(int selection, bool audible)

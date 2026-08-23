@@ -88,11 +88,15 @@ namespace CosmicSlice.Editor
                           androidXr.AssignedSettings.activeLoaders.Any(loader => loader != null && loader.GetType().FullName == LoaderType);
             var pxr = LoadPicoSettingsAsset();
             var multiview = pxr != null && pxr.stereoRenderingModeAndroid == PXR_Settings.StereoRenderingModeAndroid.Multiview;
-            var valid = inputHandler == 1 && hasPico && multiview &&
+            var xrAppMode = pxr != null && pxr.appMode == PXR_Settings.AppMode.XR;
+            var projectSettings = LoadPicoProjectSettingsAsset();
+            var nativeXrProject = projectSettings != null && !projectSettings.isSpatialAdapter;
+            var immersiveManifest = HasPicoImmersiveManifest();
+            var valid = inputHandler == 1 && hasPico && multiview && xrAppMode && nativeXrProject && immersiveManifest &&
                         PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64 &&
                         PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP &&
                         PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity;
-            Debug.Log($"COSMIC_SLICE_VALIDATION inputSystemOnly={inputHandler == 1} picoLoader={hasPico} multiview={multiview} arm64={PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64} il2cpp={PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP} activity={PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity}");
+            Debug.Log($"COSMIC_SLICE_VALIDATION inputSystemOnly={inputHandler == 1} picoLoader={hasPico} xrAppMode={xrAppMode} nativeXrProject={nativeXrProject} immersiveManifest={immersiveManifest} multiview={multiview} arm64={PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64} il2cpp={PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP} activity={PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity}");
             if (!valid)
             {
                 throw new BuildFailedException("Cosmic Slice PICO baseline validation failed. See the preceding validation line.");
@@ -102,7 +106,7 @@ namespace CosmicSlice.Editor
         private static void ConfigureProject()
         {
             PlayerSettings.companyName = "Anomaly Lab";
-            PlayerSettings.productName = "Stellar Cleave - Anomaly Protocol";
+            PlayerSettings.productName = "星际切割";
             PlayerSettings.bundleVersion = "0.1.0";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.anomalylab.cosmicslice");
             PlayerSettings.Android.bundleVersionCode = 1;
@@ -122,6 +126,13 @@ namespace CosmicSlice.Editor
             PlayerSettings.Android.preferredInstallLocation = AndroidPreferredInstallLocation.Auto;
             EditorUserBuildSettings.buildAppBundle = false;
             EditorUserBuildSettings.development = false;
+
+            var appIcon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/AppIcon/AppIcon.png");
+            if (appIcon == null)
+            {
+                throw new InvalidOperationException("Missing 星际切割 application icon at Assets/AppIcon/AppIcon.png.");
+            }
+            PlayerSettings.SetIcons(NamedBuildTarget.Android, new[] { appIcon }, IconKind.Application);
 
             QualitySettings.vSyncCount = 0;
             QualitySettings.antiAliasing = 2;
@@ -154,6 +165,7 @@ namespace CosmicSlice.Editor
             }
 
             var pxrSettings = LoadPicoSettingsAsset();
+            pxrSettings.appMode = PXR_Settings.AppMode.XR;
             pxrSettings.stereoRenderingModeAndroid = PXR_Settings.StereoRenderingModeAndroid.Multiview;
             pxrSettings.systemDisplayFrequency = PXR_Settings.SystemDisplayFrequency.Default;
             pxrSettings.optimizeBufferDiscards = true;
@@ -161,13 +173,7 @@ namespace CosmicSlice.Editor
             EditorBuildSettings.AddConfigObject("ByteDance.PICO.XR.Settings", pxrSettings, true);
             EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, settingsStore, true);
 
-            const string projectSettingsPath = "Assets/Resources/PXR_ProjectSetting.asset";
-            var projectSettings = AssetDatabase.LoadAssetAtPath<PXR_ProjectSetting>(projectSettingsPath);
-            if (projectSettings == null)
-            {
-                projectSettings = ScriptableObject.CreateInstance<PXR_ProjectSetting>();
-                AssetDatabase.CreateAsset(projectSettings, projectSettingsPath);
-            }
+            var projectSettings = LoadPicoProjectSettingsAsset();
             projectSettings.videoSeeThrough = true;
             projectSettings.sceneCapture = true;
             projectSettings.spatialMesh = true;
@@ -219,6 +225,34 @@ namespace CosmicSlice.Editor
             var settings = ScriptableObject.CreateInstance<PXR_Settings>();
             AssetDatabase.CreateAsset(settings, path);
             return settings;
+        }
+
+        private static PXR_ProjectSetting LoadPicoProjectSettingsAsset()
+        {
+            const string projectSettingsPath = "Assets/Resources/PXR_ProjectSetting.asset";
+            var projectSettings = AssetDatabase.LoadAssetAtPath<PXR_ProjectSetting>(projectSettingsPath);
+            if (projectSettings != null)
+            {
+                return projectSettings;
+            }
+
+            projectSettings = ScriptableObject.CreateInstance<PXR_ProjectSetting>();
+            AssetDatabase.CreateAsset(projectSettings, projectSettingsPath);
+            return projectSettings;
+        }
+
+        private static bool HasPicoImmersiveManifest()
+        {
+            var manifestPath = Path.Combine(Application.dataPath, "Plugins", "Android", "AndroidManifest.xml");
+            if (!File.Exists(manifestPath))
+            {
+                return false;
+            }
+
+            var manifest = File.ReadAllText(manifestPath);
+            return manifest.Contains("pvr.app.type\" android:value=\"vr") &&
+                   manifest.Contains("use.pxr.sdk\" android:value=\"1") &&
+                   manifest.Contains("android:resizeableActivity=\"false\"");
         }
 
         private static void CreateScene()

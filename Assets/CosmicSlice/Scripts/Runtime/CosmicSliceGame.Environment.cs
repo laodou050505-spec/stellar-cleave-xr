@@ -7,7 +7,9 @@ namespace CosmicSlice
 {
     public sealed partial class CosmicSliceGame
     {
-        private const float MrSpaceVeilOpacity = 0.38f;
+        // Passthrough stays readable, but the game world must remain present enough for
+        // targets, spatial grids and the wider space treatment to register in the headset.
+        private const float MrSpaceVeilOpacity = 0.55f;
         private const float InitialGalaxyForwardYaw = 82f;
 
         private void BuildMaterials()
@@ -217,20 +219,9 @@ namespace CosmicSlice
                 Vector3.ProjectOnPlane(consoleRoot.position - authoredEye, Vector3.up).normalized,
                 Vector3.up);
 
-            var backing = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            backing.name = "Mission Console Physical Backing";
-            backing.transform.SetParent(consoleRoot, false);
-            backing.transform.localPosition = new Vector3(0f, 0f, 0.055f);
-            backing.transform.localScale = new Vector3(2.72f, 1.54f, 0.10f);
-            var material = new Material(_darkMetal) { name = "Mission Console Graphite" };
-            backing.GetComponent<Renderer>().sharedMaterial = material;
-            var collider = backing.GetComponent<BoxCollider>();
-            collider.isTrigger = false;
-
-            var cyanRail = CosmicSliceMeshFactory.CreateTorusObject("Mission Console Cyan Halo", 1.22f, 0.008f, _cyanGlow);
-            cyanRail.transform.SetParent(consoleRoot, false);
-            cyanRail.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            cyanRail.transform.localScale = new Vector3(1f, 0.58f, 1f);
+            // The Canvas owns its own compact instruments.  Deliberately do not add a shared
+            // graphite backing or an enclosing halo here: those read as a giant flat display in
+            // passthrough and make the individually authored panels harder to scan.
             return consoleRoot;
         }
 
@@ -254,18 +245,18 @@ namespace CosmicSlice
             var material = new Material(spaceBackdropShader)
             {
                 name = useMixedRealityVeil
-                    ? "MR Adaptive Deep Space Veil - 38 Percent Peak"
+                    ? "MR Adaptive Deep Space Veil - 55 Percent Peak"
                     : "Generated Deep Space Panorama"
             };
             material.SetTexture("_MainTex", spacePanorama);
-            if (material.HasProperty("_Exposure")) material.SetFloat("_Exposure", useMixedRealityVeil ? 1.18f : 0.82f);
+            if (material.HasProperty("_Exposure")) material.SetFloat("_Exposure", useMixedRealityVeil ? 1.25f : 0.82f);
             if (material.HasProperty("_Opacity")) material.SetFloat("_Opacity", useMixedRealityVeil ? MrSpaceVeilOpacity : 1f);
-            if (material.HasProperty("_Softness")) material.SetFloat("_Softness", useMixedRealityVeil ? 0.72f : 0.18f);
+            if (material.HasProperty("_Softness")) material.SetFloat("_Softness", useMixedRealityVeil ? 0.62f : 0.18f);
             if (material.HasProperty("_AdaptiveAlpha")) material.SetFloat("_AdaptiveAlpha", useMixedRealityVeil ? 1f : 0f);
             if (material.HasProperty("_Tint")) material.SetColor("_Tint", useMixedRealityVeil ? new Color(0.64f, 0.78f, 1f, 1f) : new Color(0.76f, 0.9f, 1f, 1f));
             var skySphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             skySphere.name = useMixedRealityVeil
-                ? "MR Adaptive Deep Space Veil - 38 Percent Peak"
+                ? "MR Adaptive Deep Space Veil - 55 Percent Peak"
                 : "Desktop Generated Deep Space Sky Sphere";
             skySphere.transform.position = _camera.transform.position;
             skySphere.transform.localScale = Vector3.one * 118f;

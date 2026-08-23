@@ -39,10 +39,11 @@ namespace CosmicSlice
 
         // A walk-up mission console: 3 m from the authored eye position, at comfortable eye height.
         public static readonly Vector3 TitleMissionConsolePosition = new(0f, 1.72f, -1.65f);
-        // Gameplay status remains a walk-up world object at the arena edge; it must not become
-        // a screen placed between the player and the floating targets / portal.
-        public static readonly Vector3 GameplayMissionConsolePosition = new(3.25f, 1.48f, 0.35f);
-        public const float MissionConsoleScale = 0.00175f;
+        // Gameplay status is a readable, walk-up world object centered on the arena's viewing
+        // axis.  It sits about 2.5 m from the authored eye and uses a slightly larger scale, so
+        // the independent score, timer and rule instruments stay legible without becoming HUD.
+        public static readonly Vector3 GameplayMissionConsolePosition = new(0f, 1.38f, -2.10f);
+        public const float MissionConsoleScale = 0.0020f;
         public const float PortalHeightAboveArena = 3.10f;
     }
 

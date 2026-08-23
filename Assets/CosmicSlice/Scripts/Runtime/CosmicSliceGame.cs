@@ -151,6 +151,8 @@ namespace CosmicSlice
         private float _scanParticleAccumulator;
         private float _lastScanVisualProgress;
         private float _xrStartCooldown;
+        private bool _xrTriggerWasHeld;
+        private bool _xrTriggerArmed;
         private float _musicTargetVolume;
         private float _desktopYaw;
         private float _desktopPitch;
@@ -738,21 +740,30 @@ namespace CosmicSlice
             {
                 return true;
             }
-            if (_xrStartCooldown > 0f)
-            {
-                return false;
-            }
-
+            var anyTriggerHeld = false;
             foreach (var node in new[] { XRNode.LeftHand, XRNode.RightHand })
             {
                 var device = InputDevices.GetDeviceAtXRNode(node);
                 if (device.isValid && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out var held) && held)
                 {
-                    _xrStartCooldown = 0.5f;
-                    return true;
+                    anyTriggerHeld = true;
+                    break;
                 }
             }
-            return false;
+
+            // The emulator may carry a trigger's held bit across app launches. Treat it as
+            // neutral until it has been released once, then require a fresh press for
+            // START/restart.
+            if (!anyTriggerHeld)
+            {
+                _xrTriggerWasHeld = false;
+                _xrTriggerArmed = true;
+                return false;
+            }
+
+            var pressedThisFrame = _xrTriggerArmed && !_xrTriggerWasHeld;
+            _xrTriggerWasHeld = anyTriggerHeld;
+            return pressedThisFrame && _xrStartCooldown <= 0f;
         }
 
         private void PlaySfx(AudioClip clip, float volume, float pitch)

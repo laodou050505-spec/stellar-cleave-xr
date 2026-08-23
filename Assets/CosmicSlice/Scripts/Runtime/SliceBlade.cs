@@ -9,6 +9,7 @@ namespace CosmicSlice
     {
         private readonly HashSet<FallingTarget> _hitThisFrame = new();
         private readonly Collider[] _sliceHits = new Collider[32];
+        private readonly RaycastHit[] _rayHits = new RaycastHit[32];
         private CosmicSliceGame _game;
         private HandSide _side;
         private Camera _camera;
@@ -29,7 +30,13 @@ namespace CosmicSlice
         private Material _whiteCoreMaterial;
         private Transform _bladeAura;
         private Transform _emitter;
+        private Transform _toolVisualRoot;
         private LineRenderer _controllerRay;
+        private bool _xrTriggerHeld;
+        private FallingTarget _rayTargetWhileHeld;
+        private float _desktopInputGraceUntil;
+        private Vector2 _previousMousePosition;
+        private bool _hasPreviousMousePosition;
 
         public void Configure(CosmicSliceGame game, HandSide side, Camera camera, Material material)
         {
@@ -44,24 +51,32 @@ namespace CosmicSlice
         private void BuildVisual()
         {
             var color = _side == HandSide.Left ? CosmicPalette.Cyan : CosmicPalette.Amber;
+            var sideSign = _side == HandSide.Left ? -1f : 1f;
             _whiteCoreMaterial = new Material(_trailMaterial) { name = name + " White Blade Core" };
             if (_whiteCoreMaterial.HasProperty("_Color"))
             {
                 _whiteCoreMaterial.SetColor("_Color", new Color(0.84f, 0.94f, 1f, 1f));
             }
 
+            // The tracked root remains the exact collision/ray origin.  Presentation lives on a
+            // separate root so it can be held in a safe lower peripheral zone when a simulated
+            // controller begins too close to the player's face.
+            _toolVisualRoot = new GameObject(_side + " Peripheral Blade Visual").transform;
+            _toolVisualRoot.SetParent(transform, false);
+            _toolVisualRoot.localScale = Vector3.one * 0.72f;
+
             _bladeAura = new GameObject("Energy Blade Field").transform;
-            _bladeAura.SetParent(transform, false);
-            var aura = CreateBladeCylinder("Blade Aura", _bladeAura, new Vector3(0f, 0f, 0.27f), new Vector3(0.036f, 0.27f, 0.036f), _trailMaterial);
+            _bladeAura.SetParent(_toolVisualRoot, false);
+            var aura = CreateBladeCylinder("Blade Aura", _bladeAura, new Vector3(0f, 0f, 0.18f), new Vector3(0.022f, 0.18f, 0.022f), _trailMaterial);
             aura.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            var core = CreateBladeCylinder("White Blade Edge", _bladeAura, new Vector3(0f, 0f, 0.27f), new Vector3(0.013f, 0.275f, 0.013f), _whiteCoreMaterial);
+            var core = CreateBladeCylinder("White Blade Edge", _bladeAura, new Vector3(0f, 0f, 0.18f), new Vector3(0.008f, 0.182f, 0.008f), _whiteCoreMaterial);
             core.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
             var tip = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             tip.name = "Blade Tip";
             tip.transform.SetParent(_bladeAura, false);
-            tip.transform.localPosition = new Vector3(0f, 0f, 0.55f);
-            tip.transform.localScale = Vector3.one * 0.045f;
+            tip.transform.localPosition = new Vector3(0f, 0f, 0.37f);
+            tip.transform.localScale = Vector3.one * 0.026f;
             Destroy(tip.GetComponent<Collider>());
             tip.GetComponent<Renderer>().sharedMaterial = _whiteCoreMaterial;
 
@@ -72,17 +87,18 @@ namespace CosmicSlice
             };
             if (hiltMaterial.HasProperty("_Metallic")) hiltMaterial.SetFloat("_Metallic", 0.9f);
             if (hiltMaterial.HasProperty("_Glossiness")) hiltMaterial.SetFloat("_Glossiness", 0.82f);
-            var hilt = CreateBladeCylinder("Graphite Hilt", transform, new Vector3(0f, 0f, -0.13f), new Vector3(0.043f, 0.12f, 0.043f), hiltMaterial);
+            var hilt = CreateBladeCylinder("Graphite Hilt", _toolVisualRoot, new Vector3(0f, 0f, -0.09f), new Vector3(0.028f, 0.075f, 0.028f), hiltMaterial);
             hilt.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
-            BuildFirstPersonGlove(color, hiltMaterial);
-
-            var guard = CosmicSliceMeshFactory.CreateTorusObject("Blade Guard", 0.055f, 0.008f, _trailMaterial);
-            guard.transform.SetParent(transform, false);
+            // A full forearm/glove is intentionally omitted in XR.  It cannot improve the
+            // slicing interaction, but can dominate the center of view in the emulator or when
+            // a player brings a controller close to the headset.
+            var guard = CosmicSliceMeshFactory.CreateTorusObject("Blade Guard", 0.036f, 0.005f, _trailMaterial);
+            guard.transform.SetParent(_toolVisualRoot, false);
             guard.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
-            _emitter = CosmicSliceMeshFactory.CreateTorusObject("Blade Emitter", 0.039f, 0.006f, _whiteCoreMaterial).transform;
-            _emitter.SetParent(transform, false);
+            _emitter = CosmicSliceMeshFactory.CreateTorusObject("Blade Emitter", 0.025f, 0.004f, _whiteCoreMaterial).transform;
+            _emitter.SetParent(_toolVisualRoot, false);
             _emitter.localPosition = new Vector3(0f, 0f, -0.005f);
             _emitter.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
@@ -119,6 +135,10 @@ namespace CosmicSlice
             _controllerRay.sharedMaterial = _trailMaterial;
             _controllerRay.startColor = new Color(color.r, color.g, color.b, 0.7f);
             _controllerRay.endColor = new Color(color.r, color.g, color.b, 0.08f);
+
+            // Set an immediately comfortable visual pose before the first XR input update.
+            _toolVisualRoot.localPosition = new Vector3(sideSign * 0.12f, -0.18f, 0.32f);
+            _toolVisualRoot.localRotation = Quaternion.Euler(-12f, sideSign * 24f, sideSign * 6f);
         }
 
         private void BuildFirstPersonGlove(Color color, Material hiltMaterial)
@@ -218,8 +238,18 @@ namespace CosmicSlice
 
         private void Update()
         {
-            var tracked = TryUpdateFromXR();
-            var active = tracked || UpdateFromDesktop();
+            // The PICO emulator can keep a controller pose alive while its host window is
+            // receiving mouse input.  Let an intentional mouse gesture take ownership for a
+            // moment, otherwise the valid controller pose short-circuits desktop slicing.
+            var desktopMouseMoved = WasDesktopMouseMoved();
+            var desktopInputPreferred = IsDesktopInputPreferred(desktopMouseMoved);
+            var tracked = !desktopInputPreferred && TryUpdateFromXR();
+            // On a desktop player with no XR device, keep the virtual blade projected onto the
+            // target plane even before the first gesture.  This preserves its resting pose and
+            // lets automated desktop QA verify the same interaction plane.
+            var desktopPoseUpdated = !tracked && UpdateFromDesktop(desktopMouseMoved);
+            var desktopSliceActive = desktopInputPreferred && desktopPoseUpdated;
+            var active = tracked || desktopSliceActive;
             var visualCurrent = tracked ? transform.TransformPoint(0f, 0f, 0.48f) : transform.position;
             var interactionCurrent = tracked ? visualCurrent : _desktopInteractionPosition;
             var trackingChanged = tracked != _wasTracked;
@@ -239,12 +269,14 @@ namespace CosmicSlice
 
             _velocity = (visualCurrent - _previousPosition) / Mathf.Max(Time.unscaledDeltaTime, 0.001f);
             _interactionVelocity = (interactionCurrent - _previousInteractionPosition) / Mathf.Max(Time.unscaledDeltaTime, 0.001f);
+            UpdateComfortVisual(tracked);
             var pulse = 1f + Mathf.Sin(Time.unscaledTime * 7.5f + (_side == HandSide.Left ? 0f : 1.7f)) * 0.035f;
             _bladeAura.localScale = new Vector3(pulse, pulse, 1f);
             _emitter.localScale = Vector3.one * (1f + (_velocity.magnitude > 0.6f ? 0.12f : 0.03f) * Mathf.Sin(Time.unscaledTime * 12f));
             UpdateTrail(visualCurrent, active);
             UpdateControllerRay(tracked);
-            if (active && _interactionVelocity.magnitude > (tracked ? 0.48f : 0.8f))
+            DetectRaySlice(tracked);
+            if (active && _interactionVelocity.magnitude > (tracked ? 0.48f : 0.5f))
             {
                 DetectSlices(_previousInteractionPosition, interactionCurrent);
             }
@@ -252,6 +284,74 @@ namespace CosmicSlice
             _previousPosition = visualCurrent;
             _previousInteractionPosition = interactionCurrent;
             _wasTracked = tracked;
+        }
+
+        private bool WasDesktopMouseMoved()
+        {
+            if (Mouse.current == null)
+            {
+                return false;
+            }
+
+            var current = Mouse.current.position.ReadValue();
+            var moved = _hasPreviousMousePosition &&
+                        (current - _previousMousePosition).sqrMagnitude > 0.25f;
+            _previousMousePosition = current;
+            _hasPreviousMousePosition = true;
+            return moved;
+        }
+
+        private bool IsDesktopInputPreferred(bool mouseMoved)
+        {
+            var mouse = Mouse.current;
+            if (mouse == null)
+            {
+                return false;
+            }
+
+            var buttonHeld = mouse.leftButton.isPressed || mouse.rightButton.isPressed;
+            if (mouseMoved || buttonHeld)
+            {
+                // Keep one coherent virtual blade stroke even if the mouse momentarily stops
+                // between host-window input events.
+                _desktopInputGraceUntil = Time.unscaledTime + 0.18f;
+            }
+
+            return buttonHeld || Time.unscaledTime < _desktopInputGraceUntil;
+        }
+
+        /// <summary>
+        /// Keeps the decorative blade outside the central comfort zone without changing the
+        /// tracked transform used by slicing, controller rays or haptics.  The clamp only takes
+        /// effect while the physical/simulated controller is close to, or directly in front of,
+        /// the HMD.
+        /// </summary>
+        private void UpdateComfortVisual(bool tracked)
+        {
+            if (_toolVisualRoot == null || _camera == null)
+            {
+                return;
+            }
+
+            var sideSign = _side == HandSide.Left ? -1f : 1f;
+            var visualPosition = transform.TransformPoint(new Vector3(sideSign * 0.08f, -0.11f, 0.22f));
+            if (tracked)
+            {
+                var cameraSpace = _camera.transform.InverseTransformPoint(visualPosition);
+                var blocksCenter = cameraSpace.z < 0.58f ||
+                                   (Mathf.Abs(cameraSpace.x) < 0.24f && cameraSpace.y > -0.34f && cameraSpace.z < 1.05f);
+                if (blocksCenter)
+                {
+                    cameraSpace.x = sideSign * Mathf.Max(0.31f, Mathf.Abs(cameraSpace.x));
+                    cameraSpace.y = Mathf.Min(cameraSpace.y, -0.34f);
+                    cameraSpace.z = Mathf.Max(cameraSpace.z, 0.70f);
+                    visualPosition = _camera.transform.TransformPoint(cameraSpace);
+                }
+            }
+
+            _toolVisualRoot.SetPositionAndRotation(
+                visualPosition,
+                transform.rotation * Quaternion.Euler(-12f, sideSign * 24f, sideSign * 6f));
         }
 
         private void UpdateControllerRay(bool tracked)
@@ -269,12 +369,80 @@ namespace CosmicSlice
             }
 
             var length = 5.4f;
-            if (Physics.Raycast(origin, direction, out var hit, length, ~0, QueryTriggerInteraction.Collide))
+            if (FindRayTarget(origin, direction, length, out var targetHit))
+            {
+                length = targetHit.distance;
+            }
+            else if (Physics.Raycast(origin, direction, out var hit, length, ~0, QueryTriggerInteraction.Collide))
             {
                 length = hit.distance;
             }
             _controllerRay.SetPosition(0, origin);
             _controllerRay.SetPosition(1, origin + direction * length);
+        }
+
+        private void DetectRaySlice(bool tracked)
+        {
+            if (!tracked)
+            {
+                _xrTriggerHeld = false;
+                _rayTargetWhileHeld = null;
+                return;
+            }
+
+            if (!_xrTriggerHeld)
+            {
+                _rayTargetWhileHeld = null;
+                return;
+            }
+
+            var origin = transform.TransformPoint(0f, 0f, 0.08f);
+            var direction = transform.forward;
+            if (!FindRayTarget(origin, direction, 5.4f, out var hit))
+            {
+                return;
+            }
+
+            var target = hit.collider.GetComponentInParent<FallingTarget>();
+            if (target == null || target == _rayTargetWhileHeld)
+            {
+                return;
+            }
+
+            _rayTargetWhileHeld = target;
+            var directionVector = _interactionVelocity.sqrMagnitude > 0.001f
+                ? _interactionVelocity.normalized
+                : direction;
+            _game.HandleBladeHit(target, _side, directionVector, hit.point);
+        }
+
+        private bool FindRayTarget(Vector3 origin, Vector3 direction, float length, out RaycastHit targetHit)
+        {
+            targetHit = default;
+            var hitCount = Physics.RaycastNonAlloc(
+                origin,
+                direction,
+                _rayHits,
+                length,
+                ~0,
+                QueryTriggerInteraction.Collide);
+            var nearestDistance = float.PositiveInfinity;
+            var found = false;
+            for (var index = 0; index < hitCount; index++)
+            {
+                var hit = _rayHits[index];
+                var target = hit.collider != null ? hit.collider.GetComponentInParent<FallingTarget>() : null;
+                if (target == null || target.Resolved || !target.CanReceiveHit() || hit.distance >= nearestDistance)
+                {
+                    continue;
+                }
+
+                nearestDistance = hit.distance;
+                targetHit = hit;
+                found = true;
+            }
+
+            return found;
         }
 
         private bool TryUpdateFromXR()
@@ -286,15 +454,17 @@ namespace CosmicSlice
 
             if (!_device.isValid || !_device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out var position))
             {
+                _xrTriggerHeld = false;
                 return false;
             }
 
             _device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out var rotation);
+            _device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out _xrTriggerHeld);
             transform.SetPositionAndRotation(_game.RigTransform.TransformPoint(position), _game.RigTransform.rotation * rotation);
             return true;
         }
 
-        private bool UpdateFromDesktop()
+        private bool UpdateFromDesktop(bool mouseMoved)
         {
             if (Mouse.current == null || _camera == null)
             {
@@ -328,9 +498,11 @@ namespace CosmicSlice
                 _desktopInteractionPosition = ray.GetPoint(sliceDistance);
             }
 
-            return _side == HandSide.Left
-                ? Mouse.current.leftButton.isPressed
-                : Mouse.current.rightButton.isPressed;
+            var primaryMouseSwing = _side == HandSide.Left && mouseMoved;
+            return primaryMouseSwing ||
+                   (_side == HandSide.Left
+                       ? Mouse.current.leftButton.isPressed
+                       : Mouse.current.rightButton.isPressed);
         }
 
         private void UpdateTrail(Vector3 current, bool active)
@@ -395,6 +567,20 @@ namespace CosmicSlice
             }
             _interactionVelocity = (end - start) / 0.016f;
             DetectSlices(start, end);
+        }
+
+        internal void QaRaySlice(Vector3 origin, Vector3 direction)
+        {
+            if (!_game.IsQaMode || !FindRayTarget(origin, direction.normalized, 5.4f, out var hit))
+            {
+                return;
+            }
+
+            var target = hit.collider.GetComponentInParent<FallingTarget>();
+            if (target != null)
+            {
+                _game.HandleBladeHit(target, _side, direction.normalized, hit.point);
+            }
         }
 
         public void Haptic(float amplitude, float duration)
