@@ -7,10 +7,11 @@ namespace CosmicSlice
 {
     public sealed partial class CosmicSliceGame
     {
-        // Passthrough stays readable, but the game world must remain present enough for
-        // targets, spatial grids and the wider space treatment to register in the headset.
-        private const float MrSpaceVeilOpacity = 0.55f;
-        private const float InitialGalaxyForwardYaw = 82f;
+        // The Android camera clears to transparent so PICO Video See-Through remains visible.
+        // Desktop uses the same neutral RGB as a composition-only fallback; it is not evidence
+        // of real passthrough or room sensing.
+        private static readonly Color MrPreviewClearColor = new(0.085f, 0.088f, 0.095f, 1f);
+        private Material _spaceBackdropMaterial;
 
         private void BuildMaterials()
         {
@@ -52,8 +53,12 @@ namespace CosmicSlice
             _camera.nearClipPlane = 0.06f;
             _camera.farClipPlane = 80f;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = new Color(0.004f, 0.006f, 0.009f, Application.platform == RuntimePlatform.Android ? 0f : 1f);
-            _camera.allowHDR = true;
+            _camera.backgroundColor = new Color(
+                MrPreviewClearColor.r,
+                MrPreviewClearColor.g,
+                MrPreviewClearColor.b,
+                Application.platform == RuntimePlatform.Android ? 0f : 1f);
+            _camera.allowHDR = false;
 
             var trackedPoseDriver = _camera.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
             if (trackedPoseDriver != null && Application.platform != RuntimePlatform.Android)
@@ -82,7 +87,7 @@ namespace CosmicSlice
             ResetToCurrentStageStart(resetHeadPose);
         }
 
-        private void ResetToCurrentStageStart(bool resetHeadPose)
+        private void ResetToCurrentStageStart(bool resetHeadPose, bool relocateCeiling = true)
         {
             var start = _gameplayStageActive ? _gameplayPlayerStart : _titlePlayerStart;
             var yaw = _gameplayStageActive ? CosmicSliceDesign.GameplayPlayerYaw : CosmicSliceDesign.TitlePlayerYaw;
@@ -99,6 +104,15 @@ namespace CosmicSlice
             {
                 _camera.transform.localPosition = new Vector3(0f, eyeHeight, 0f);
                 _camera.transform.localRotation = Quaternion.identity;
+            }
+
+            if (_gameplayStageActive && _portalRoot != null)
+            {
+                CaptureMeteorBodyHeading();
+                if (relocateCeiling) ResetDetectedCeilingToDesignPose();
+#if UNITY_ANDROID && !UNITY_EDITOR
+                if (relocateCeiling) GetComponent<PicoCeilingLocator>()?.RequestRelocate();
+#endif
             }
         }
 
@@ -132,9 +146,11 @@ namespace CosmicSlice
                 return;
             }
 
+            // Menu arrows and W/S navigate controls; they must not also move the viewer.
+            if (_state == GameState.Cover) return;
             var look = Vector2.zero;
-            if (keyboard.leftArrowKey.isPressed) look.x -= 1f;
-            if (keyboard.rightArrowKey.isPressed) look.x += 1f;
+            if (_state == GameState.Playing && keyboard.leftArrowKey.isPressed) look.x -= 1f;
+            if (_state == GameState.Playing && keyboard.rightArrowKey.isPressed) look.x += 1f;
             if (keyboard.upArrowKey.isPressed) look.y += 1f;
             if (keyboard.downArrowKey.isPressed) look.y -= 1f;
             _desktopYaw += look.x * 58f * deltaTime;
@@ -174,25 +190,18 @@ namespace CosmicSlice
             RenderSettings.ambientSkyColor = new Color(0.085f, 0.11f, 0.17f);
             RenderSettings.ambientEquatorColor = new Color(0.035f, 0.065f, 0.105f);
             RenderSettings.ambientGroundColor = new Color(0.012f, 0.026f, 0.045f);
-            RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.003f, 0.008f, 0.017f);
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 18f;
-            RenderSettings.fogEndDistance = 62f;
+            RenderSettings.fog = false;
 
-            var isHeadsetMixedReality = Application.platform == RuntimePlatform.Android;
-            var previewMixedRealityInEditor = Application.isEditor || HasCommandLineFlag("-cosmic-mr-preview");
-            ConfigureSpaceBackdrop(isHeadsetMixedReality, previewMixedRealityInEditor);
+            ConfigureSpaceBackdrop();
             BuildTransparentSpatialGrid();
-            BuildDeepSpaceVista();
-            BuildUserSpaceSetDressing();
+            BuildLateralMeteorShowers();
             BuildSpatialScanIntro();
 
             var key = new GameObject("Cool Key Light").AddComponent<Light>();
             key.transform.SetParent(_gameplayRoot, true);
             key.type = LightType.Directional;
             key.color = new Color(0.61f, 0.68f, 0.9f);
-            key.intensity = isHeadsetMixedReality ? 0.42f : 0.85f;
+            key.intensity = 0.85f;
             key.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
 
             var rim = new GameObject("Warm Rim Light").AddComponent<Light>();
@@ -202,8 +211,6 @@ namespace CosmicSlice
             rim.intensity = 1.15f;
             rim.range = 4.5f;
             rim.transform.position = new Vector3(2.8f, 1.4f, 1.4f);
-
-            BuildRoomScaleCosmicDust();
         }
 
         private Transform BuildMissionConsole(string name, Vector3 position, Vector3 playerRootPosition, Transform parent)
@@ -225,47 +232,25 @@ namespace CosmicSlice
             return consoleRoot;
         }
 
-        private void ConfigureSpaceBackdrop(bool preservePassthrough, bool previewMixedRealityInEditor)
+        private void ConfigureSpaceBackdrop()
         {
-            var useMixedRealityVeil = preservePassthrough || previewMixedRealityInEditor;
-            if (useMixedRealityVeil)
-            {
-                RenderSettings.skybox = null;
-                _camera.clearFlags = CameraClearFlags.SolidColor;
-                _camera.backgroundColor = preservePassthrough
-                    ? Color.clear
-                    : new Color(0.16f, 0.17f, 0.18f, 1f);
-            }
-
-            if (spacePanorama == null || spaceBackdropShader == null)
-            {
-                return;
-            }
-
-            var material = new Material(spaceBackdropShader)
-            {
-                name = useMixedRealityVeil
-                    ? "MR Adaptive Deep Space Veil - 55 Percent Peak"
-                    : "Generated Deep Space Panorama"
-            };
-            material.SetTexture("_MainTex", spacePanorama);
-            if (material.HasProperty("_Exposure")) material.SetFloat("_Exposure", useMixedRealityVeil ? 1.25f : 0.82f);
-            if (material.HasProperty("_Opacity")) material.SetFloat("_Opacity", useMixedRealityVeil ? MrSpaceVeilOpacity : 1f);
-            if (material.HasProperty("_Softness")) material.SetFloat("_Softness", useMixedRealityVeil ? 0.62f : 0.18f);
-            if (material.HasProperty("_AdaptiveAlpha")) material.SetFloat("_AdaptiveAlpha", useMixedRealityVeil ? 1f : 0f);
-            if (material.HasProperty("_Tint")) material.SetColor("_Tint", useMixedRealityVeil ? new Color(0.64f, 0.78f, 1f, 1f) : new Color(0.76f, 0.9f, 1f, 1f));
-            var skySphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            skySphere.name = useMixedRealityVeil
-                ? "MR Adaptive Deep Space Veil - 55 Percent Peak"
-                : "Desktop Generated Deep Space Sky Sphere";
-            skySphere.transform.position = _camera.transform.position;
-            skySphere.transform.localScale = Vector3.one * 118f;
-            skySphere.transform.rotation = Quaternion.Euler(0f, InitialGalaxyForwardYaw, 0f);
-            Destroy(skySphere.GetComponent<Collider>());
-            skySphere.GetComponent<Renderer>().sharedMaterial = material;
-            _desktopSpaceBackdrop = skySphere.transform;
             RenderSettings.skybox = null;
             _camera.clearFlags = CameraClearFlags.SolidColor;
+            _camera.backgroundColor = new Color(
+                MrPreviewClearColor.r,
+                MrPreviewClearColor.g,
+                MrPreviewClearColor.b,
+                Application.platform == RuntimePlatform.Android ? 0f : 1f);
+            _camera.allowHDR = false;
+
+            // Deliberately leave every deep-space reference null. A sky sphere, star layer,
+            // planet or spacecraft would occlude the real room and make the result read as a
+            // hybrid immersive scene instead of the requested MR composition.
+            _spaceBackdropMaterial = null;
+            _desktopSpaceBackdrop = null;
+            _spaceVistaRoot = null;
+            _userSpaceModelRoot = null;
+            _cosmicDustRoot = null;
         }
 
         private void BuildTransparentSpatialGrid()
@@ -314,7 +299,7 @@ namespace CosmicSlice
         private void BuildSpatialScanIntro()
         {
             _scanIntroRoot = new GameObject("Opening Spatial Survey").transform;
-            _scanIntroRoot.position = (_rigTransform != null ? _rigTransform.position : Vector3.zero) + Vector3.up * 0.028f;
+            CaptureOpeningOrigin();
             _scanIntroLines.Clear();
             _scanIntroBaseAlphas.Clear();
 
@@ -326,13 +311,13 @@ namespace CosmicSlice
             for (var index = -12; index <= 12; index++)
             {
                 var x = index * spacing;
-                var line = CreateScanLine(_scanGridRoot, "Survey Longitudinal " + index, new Vector3(x, 0f, -halfDepth), new Vector3(x, 0f, halfDepth), index % 3 == 0 ? 0.17f : 0.055f, index % 3 == 0 ? 0.008f : 0.0026f);
+                var line = CreateScanLine(_scanGridRoot, "Survey Longitudinal " + index, new Vector3(x, 0f, -halfDepth), new Vector3(x, 0f, halfDepth), index % 3 == 0 ? 0.36f : 0.14f, index % 3 == 0 ? 0.014f : 0.0055f);
                 _scanIntroLines.Add(line);
             }
             for (var index = -14; index <= 14; index++)
             {
                 var z = index * spacing;
-                var line = CreateScanLine(_scanGridRoot, "Survey Transverse " + index, new Vector3(-halfWidth, 0f, z), new Vector3(halfWidth, 0f, z), index % 3 == 0 ? 0.17f : 0.055f, index % 3 == 0 ? 0.008f : 0.0026f);
+                var line = CreateScanLine(_scanGridRoot, "Survey Transverse " + index, new Vector3(-halfWidth, 0f, z), new Vector3(halfWidth, 0f, z), index % 3 == 0 ? 0.36f : 0.14f, index % 3 == 0 ? 0.014f : 0.0055f);
                 _scanIntroLines.Add(line);
             }
 
@@ -342,11 +327,11 @@ namespace CosmicSlice
             {
                 var x = index / 10f * halfWidth;
                 var height = 0.16f + Mathf.Abs(Mathf.Sin(index * 2.37f)) * 0.26f;
-                var line = CreateScanLine(_scanCurtainRoot, "Curtain Datum " + index, new Vector3(x, 0f, 0f), new Vector3(x, height, 0f), index % 4 == 0 ? 0.13f : 0.045f, index % 4 == 0 ? 0.006f : 0.0022f);
+                var line = CreateScanLine(_scanCurtainRoot, "Curtain Datum " + index, new Vector3(x, 0f, 0f), new Vector3(x, height, 0f), index % 4 == 0 ? 0.32f : 0.12f, index % 4 == 0 ? 0.012f : 0.005f);
                 _scanIntroLines.Add(line);
             }
-            _scanIntroLines.Add(CreateScanLine(_scanCurtainRoot, "Curtain Ground Edge", new Vector3(-halfWidth, 0f, 0f), new Vector3(halfWidth, 0f, 0f), 0.52f, 0.018f));
-            _scanIntroLines.Add(CreateScanLine(_scanCurtainRoot, "Curtain Upper Trace", new Vector3(-halfWidth, 0.32f, 0f), new Vector3(halfWidth, 0.32f, 0f), 0.045f, 0.003f));
+            _scanIntroLines.Add(CreateScanLine(_scanCurtainRoot, "Curtain Ground Edge", new Vector3(-halfWidth, 0f, 0f), new Vector3(halfWidth, 0f, 0f), 0.78f, 0.026f));
+            _scanIntroLines.Add(CreateScanLine(_scanCurtainRoot, "Curtain Upper Trace", new Vector3(-halfWidth, 0.32f, 0f), new Vector3(halfWidth, 0.32f, 0f), 0.18f, 0.007f));
 
             _scanPulseRoot = new GameObject("Survey Pulse Rings").transform;
             _scanPulseRoot.SetParent(_scanIntroRoot, false);
@@ -370,7 +355,7 @@ namespace CosmicSlice
             bandObject.transform.SetParent(_scanWaveRoot, false);
             var filter = bandObject.AddComponent<MeshFilter>();
             var renderer = bandObject.AddComponent<MeshRenderer>();
-            _scanWaveMaterial = CreatePortalGlow("Survey Wave Band", new Color(0.1f, 0.78f, 1f), 0.18f, 0.74f);
+            _scanWaveMaterial = CreatePortalGlow("Survey Wave Band", new Color(0.03f, 0.86f, 1f), 0.22f, 0.74f);
             renderer.sharedMaterial = _scanWaveMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
@@ -378,8 +363,8 @@ namespace CosmicSlice
             _scanWaveMesh.MarkDynamic();
             filter.sharedMesh = _scanWaveMesh;
 
-            _scanWaveCrest = CreateSurveyWaveLine("Particle Wave Crest", 0.022f, CosmicPalette.Cyan, 0.88f);
-            _scanWaveEcho = CreateSurveyWaveLine("Particle Wave Echo", 0.008f, CosmicPalette.Violet, 0.42f);
+            _scanWaveCrest = CreateSurveyWaveLine("Particle Wave Crest", 0.034f, CosmicPalette.Cyan, 1f);
+            _scanWaveEcho = CreateSurveyWaveLine("Particle Wave Echo", 0.014f, CosmicPalette.Violet, 0.68f);
 
             var particleObject = new GameObject("Survey Wave Spark Particles");
             particleObject.transform.SetParent(_scanWaveRoot, false);
@@ -391,8 +376,8 @@ namespace CosmicSlice
             main.maxParticles = 520;
             main.startSpeed = 0f;
             main.startLifetime = 0.62f;
-            main.startSize = 0.045f;
-            main.startColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.7f);
+            main.startSize = 0.062f;
+            main.startColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.92f);
             var emission = _scanWaveParticles.emission;
             emission.enabled = false;
             var shape = _scanWaveParticles.shape;
@@ -406,12 +391,28 @@ namespace CosmicSlice
             particleRenderer.shadowCastingMode = ShadowCastingMode.Off;
             particleRenderer.receiveShadows = false;
             _scanWaveParticles.Play(true);
+
+            _scanFollowRoot = new GameObject("Following Survey Wave - Spaced 1.8m").transform;
+            _scanFollowRoot.SetParent(_scanIntroRoot, false);
+            var followBand = new GameObject("Following Translucent Band");
+            followBand.transform.SetParent(_scanFollowRoot, false);
+            _scanFollowMesh = new Mesh { name = "Following Survey Wave Mesh" };
+            _scanFollowMesh.MarkDynamic();
+            followBand.AddComponent<MeshFilter>().sharedMesh = _scanFollowMesh;
+            var followRenderer = followBand.AddComponent<MeshRenderer>();
+            _scanFollowMaterial = new Material(_scanWaveMaterial) { name = "Following Survey Wave Material" };
+            followRenderer.sharedMaterial = _scanFollowMaterial;
+            followRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            followRenderer.receiveShadows = false;
+            _scanFollowCrest = CreateSurveyWaveLine("Following Wave Crest", 0.028f, CosmicPalette.Cyan, 0.8f, _scanFollowRoot);
+            _scanFollowEcho = CreateSurveyWaveLine("Following Wave Echo", 0.011f, CosmicPalette.Violet, 0.5f, _scanFollowRoot);
+            _scanFollowRoot.gameObject.SetActive(false);
         }
 
-        private LineRenderer CreateSurveyWaveLine(string objectName, float width, Color color, float alpha)
+        private LineRenderer CreateSurveyWaveLine(string objectName, float width, Color color, float alpha, Transform parent = null)
         {
             var lineObject = new GameObject(objectName);
-            lineObject.transform.SetParent(_scanWaveRoot, false);
+            lineObject.transform.SetParent(parent != null ? parent : _scanWaveRoot, false);
             var line = lineObject.AddComponent<LineRenderer>();
             line.useWorldSpace = false;
             line.loop = true;
@@ -443,6 +444,43 @@ namespace CosmicSlice
             return line;
         }
 
+        private void CaptureOpeningOrigin()
+        {
+            if (_scanIntroRoot == null) return;
+            var eye = _camera != null ? _camera.transform.position : _rigTransform.position;
+            var floor = _rigTransform != null ? _rigTransform.position.y : 0f;
+            _scanIntroRoot.SetPositionAndRotation(new Vector3(eye.x, floor + 0.028f, eye.z), Quaternion.identity);
+        }
+
+        private static float OpeningRadius(float progress)
+        {
+            // Approximately constant travel speed makes the full near-to-far journey readable.
+            return 0.08f + Mathf.Clamp01(progress) * OpeningScanDuration * OpeningWaveSpeed;
+        }
+
+        private static float OpeningFollowRadius(float progress)
+        {
+            return 0.08f + Mathf.Max(0f, Mathf.Clamp01(progress) * OpeningScanDuration - OpeningFollowDelay) * OpeningWaveSpeed;
+        }
+
+        private void UpdateRadialSurveyGrid(float radius)
+        {
+            // Reveal stationary grid segments inside the circle, instead of scaling an
+            // already-wide grid outward or sweeping an unrelated plane across the room.
+            for (var i = 0; i < 54; i++)
+            {
+                var line = _scanIntroLines[i];
+                var longitudinal = i < 25;
+                var offset = (longitudinal ? i - 12 : i - 25 - 14) * 0.7f;
+                var visible = Mathf.Abs(offset) <= radius;
+                line.enabled = visible;
+                if (!visible) continue;
+                var half = Mathf.Sqrt(Mathf.Max(0f, radius * radius - offset * offset));
+                line.SetPosition(0, longitudinal ? new Vector3(offset, 0f, -half) : new Vector3(-half, 0f, offset));
+                line.SetPosition(1, longitudinal ? new Vector3(offset, 0f, half) : new Vector3(half, 0f, offset));
+            }
+        }
+
         private void UpdateSpatialScanIntro(float progress)
         {
             if (_scanIntroRoot == null)
@@ -450,16 +488,22 @@ namespace CosmicSlice
                 return;
             }
 
-            var sweep = Mathf.SmoothStep(0.018f, 1f, Mathf.InverseLerp(0.04f, 0.64f, progress));
-            _scanGridRoot.localScale = new Vector3(Mathf.Max(0.018f, sweep), 1f, Mathf.Max(0.018f, sweep));
-            _scanCurtainRoot.localPosition = new Vector3(0f, 0f, Mathf.Lerp(0.35f, 13.4f, sweep));
-            _scanCurtainRoot.localScale = new Vector3(Mathf.Lerp(0.16f, 1f, sweep), Mathf.Lerp(0.35f, 1f, sweep), 1f);
-            var pulseScale = Mathf.Lerp(0.12f, 13.2f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.015f, 0.6f, progress)));
-            _scanPulseRoot.localScale = Vector3.one * pulseScale;
-            _scanPulseRoot.gameObject.SetActive(progress < 0.64f);
-            UpdateSurveyWave(progress, pulseScale);
+            // One wave starts at the player's floor-projected position. Do not pre-expand
+            // it to get it into a forward-facing screenshot: that removes the actual origin.
+            var radius = OpeningRadius(progress);
+            _scanGridRoot.localScale = Vector3.one;
+            UpdateRadialSurveyGrid(radius);
+            _scanCurtainRoot.gameObject.SetActive(false);
+            _scanPulseRoot.localScale = Vector3.one * radius;
+            _scanPulseRoot.gameObject.SetActive(progress < 0.94f);
+            UpdateSurveyWave(progress, radius);
+            var followActive = progress * OpeningScanDuration >= OpeningFollowDelay && progress < 0.99f;
+            _scanFollowRoot.gameObject.SetActive(followActive);
+            if (followActive)
+                DrawSurveyWave(progress, OpeningFollowRadius(progress), _scanFollowMesh,
+                    _scanFollowMaterial, _scanFollowCrest, _scanFollowEcho, 0.78f);
 
-            var fade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.66f, 0.92f, progress));
+            var fade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.88f, 1f, progress));
             foreach (var line in _scanIntroLines)
             {
                 if (line == null) continue;
@@ -487,7 +531,7 @@ namespace CosmicSlice
                 if (_scanWaveParticles != null) _scanWaveParticles.Clear(true);
             }
 
-            var active = progress < 0.68f;
+            var active = progress < 0.99f;
             _scanWaveRoot.gameObject.SetActive(active);
             if (!active)
             {
@@ -495,19 +539,28 @@ namespace CosmicSlice
                 return;
             }
 
+            DrawSurveyWave(progress, radius, _scanWaveMesh, _scanWaveMaterial, _scanWaveCrest, _scanWaveEcho, 1f);
+            var waveFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.88f, 0.99f, progress));
+            EmitSurveyWaveParticles(progress, radius, waveFade);
+            _lastScanVisualProgress = progress;
+        }
+
+        private void DrawSurveyWave(float progress, float radius, Mesh mesh, Material material,
+            LineRenderer crest, LineRenderer echo, float strength)
+        {
             const int segments = 128;
             var vertices = new Vector3[segments * 2];
             var triangles = new int[segments * 6];
             var uvs = new Vector2[segments * 2];
-            var waveFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.54f, 0.68f, progress));
-            var bandWidth = Mathf.Lerp(0.22f, 0.92f, Mathf.Clamp01(radius / 5f));
-            var time = Time.unscaledTime;
+            var waveFade = strength * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.88f, 0.99f, progress)));
+            var bandWidth = Mathf.Lerp(0.12f, 0.34f, Mathf.Clamp01(radius / 5f));
+            var time = progress * OpeningScanDuration;
             for (var index = 0; index < segments; index++)
             {
                 var normalized = index / (float)segments;
                 var angle = normalized * Mathf.PI * 2f;
                 var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-                var irregularity = Mathf.Sin(angle * 7f + time * 3.2f) * 0.085f + Mathf.Sin(angle * 17f - time * 1.8f) * 0.035f;
+                var irregularity = (Mathf.Sin(angle * 7f + time * 3.2f) * 0.085f + Mathf.Sin(angle * 17f - time * 1.8f) * 0.035f) * Mathf.Clamp01(radius);
                 var crestRadius = Mathf.Max(0.05f, radius + irregularity);
                 var innerRadius = Mathf.Max(0.01f, crestRadius - bandWidth);
                 var crestHeight = 0.025f + (Mathf.Sin(angle * 11f + time * 4.1f) * 0.5f + 0.5f) * 0.085f;
@@ -525,27 +578,25 @@ namespace CosmicSlice
                 triangles[triangle + 4] = next * 2;
                 triangles[triangle + 5] = next * 2 + 1;
 
-                _scanWaveCrest.SetPosition(index, vertices[index * 2 + 1]);
-                _scanWaveEcho.SetPosition(index, radial * Mathf.Max(0.02f, innerRadius - 0.2f) + Vector3.up * 0.014f);
+                crest.SetPosition(index, vertices[index * 2 + 1]);
+                echo.SetPosition(index, radial * Mathf.Max(0.02f, innerRadius - 0.2f) + Vector3.up * 0.014f);
             }
-            _scanWaveMesh.Clear(false);
-            _scanWaveMesh.vertices = vertices;
-            _scanWaveMesh.triangles = triangles;
-            _scanWaveMesh.uv = uvs;
-            _scanWaveMesh.RecalculateBounds();
+            mesh.Clear(false);
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.uv = uvs;
+            mesh.RecalculateBounds();
 
             var crestColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.88f * waveFade);
-            _scanWaveCrest.startColor = crestColor;
-            _scanWaveCrest.endColor = new Color(0.34f, 0.58f, 1f, 0.62f * waveFade);
-            _scanWaveEcho.startColor = new Color(CosmicPalette.Violet.r, CosmicPalette.Violet.g, CosmicPalette.Violet.b, 0.36f * waveFade);
-            _scanWaveEcho.endColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.18f * waveFade);
-            if (_scanWaveMaterial != null && _scanWaveMaterial.HasProperty("_Color"))
+            crest.startColor = crestColor;
+            crest.endColor = new Color(0.34f, 0.58f, 1f, 0.62f * waveFade);
+            echo.startColor = new Color(CosmicPalette.Violet.r, CosmicPalette.Violet.g, CosmicPalette.Violet.b, 0.36f * waveFade);
+            echo.endColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.18f * waveFade);
+            if (material != null && material.HasProperty("_Color"))
             {
-                _scanWaveMaterial.SetColor("_Color", new Color(0.08f, 0.68f, 1f, 0.24f * waveFade));
+                material.SetColor("_Color", new Color(0.03f, 0.82f, 1f, 0.24f * waveFade));
             }
 
-            EmitSurveyWaveParticles(progress, radius, waveFade);
-            _lastScanVisualProgress = progress;
         }
 
         private void EmitSurveyWaveParticles(float progress, float radius, float waveFade)
@@ -555,8 +606,8 @@ namespace CosmicSlice
                 return;
             }
 
-            var elapsed = Mathf.Max(0f, progress - _lastScanVisualProgress) * 4.6f;
-            _scanParticleAccumulator += elapsed * 260f;
+            var elapsed = Mathf.Max(0f, progress - _lastScanVisualProgress) * OpeningScanDuration;
+            _scanParticleAccumulator += elapsed * 310f;
             var count = Mathf.Clamp(Mathf.FloorToInt(_scanParticleAccumulator), 0, 160);
             _scanParticleAccumulator -= count;
             for (var index = 0; index < count; index++)
@@ -564,7 +615,10 @@ namespace CosmicSlice
                 var angle = Random.value * Mathf.PI * 2f;
                 var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 var tangent = new Vector3(-radial.z, 0f, radial.x);
-                var offsetRadius = radius + Random.Range(-0.34f, 0.22f);
+                // Share the existing capped particle budget between the waves.
+                var sourceRadius = progress * OpeningScanDuration >= OpeningFollowDelay && index % 3 == 0
+                    ? OpeningFollowRadius(progress) : radius;
+                var offsetRadius = sourceRadius + Random.Range(-0.34f, 0.22f);
                 var emit = new ParticleSystem.EmitParams
                 {
                     position = radial * Mathf.Max(0.04f, offsetRadius) + Vector3.up * Random.Range(0.02f, 0.22f),
@@ -1028,71 +1082,6 @@ namespace CosmicSlice
             model.localPosition -= anchor.InverseTransformVector(bounds.center - anchor.position);
         }
 
-        private void BuildPortal()
-        {
-            _portalRoot = new GameObject("Ceiling Anomaly Portal").transform;
-            _portalRoot.position = CosmicSliceDesign.ArenaOrigin + Vector3.up * CosmicSliceDesign.PortalHeightAboveArena;
-            if (_ceilingGridRoot != null)
-            {
-                _ceilingGridRoot.position = new Vector3(_portalRoot.position.x, _portalRoot.position.y + 0.025f, _portalRoot.position.z);
-            }
-
-            var outerRing = CosmicSliceMeshFactory.CreateTorusObject("Graphite Lensing Ring", 1.48f, 0.11f, _darkMetal);
-            outerRing.transform.SetParent(_portalRoot, false);
-
-            var voidDisk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            voidDisk.name = "Animated Event Horizon";
-            voidDisk.transform.SetParent(_portalRoot, false);
-            voidDisk.transform.localPosition = new Vector3(0f, -0.045f, 0f);
-            voidDisk.transform.localScale = new Vector3(1.42f, 0.012f, 1.42f);
-            Destroy(voidDisk.GetComponent<Collider>());
-            var portalMaterial = new Material(portalShader != null ? portalShader : Shader.Find("Unlit/Color"));
-            portalMaterial.name = "Animated Event Horizon";
-            if (portalMaterial.HasProperty("_Accent"))
-            {
-                portalMaterial.SetColor("_Accent", CosmicPalette.Cyan);
-            }
-            if (portalMaterial.HasProperty("_Hot")) portalMaterial.SetColor("_Hot", new Color(1f, 0.28f, 0.08f, 1f));
-            if (portalMaterial.HasProperty("_Speed")) portalMaterial.SetFloat("_Speed", 0.68f);
-            voidDisk.GetComponent<Renderer>().sharedMaterial = portalMaterial;
-
-            var coreDisk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            coreDisk.name = "Event Horizon Black Core";
-            coreDisk.transform.SetParent(_portalRoot, false);
-            coreDisk.transform.localPosition = new Vector3(0f, -0.072f, 0f);
-            coreDisk.transform.localScale = new Vector3(0.54f, 0.014f, 0.54f);
-            Destroy(coreDisk.GetComponent<Collider>());
-            var coreShader = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
-            var coreMaterial = new Material(coreShader) { name = "Absolute Black Event Horizon" };
-            if (coreMaterial.HasProperty("_Color")) coreMaterial.SetColor("_Color", new Color(0.0002f, 0.0003f, 0.0006f, 1f));
-            if (coreMaterial.HasProperty("_Glossiness")) coreMaterial.SetFloat("_Glossiness", 0f);
-            coreDisk.GetComponent<Renderer>().sharedMaterial = coreMaterial;
-
-            _portalSpinA = new GameObject("Cyan Telemetry Ring").transform;
-            _portalSpinA.SetParent(_portalRoot, false);
-            var ringA = CosmicSliceMeshFactory.CreateTorusObject("Ring", 1.17f, 0.008f, CreatePortalGlow("Cool Photon Trace", CosmicPalette.Cyan, 0.13f, 1.1f));
-            ringA.transform.SetParent(_portalSpinA, false);
-
-            _portalSpinB = new GameObject("Violet Telemetry Ring").transform;
-            _portalSpinB.SetParent(_portalRoot, false);
-            var ringB = CosmicSliceMeshFactory.CreateTorusObject("Ring", 0.61f, 0.016f, CreatePortalGlow("Hot Photon Ring", new Color(1f, 0.42f, 0.12f), 0.3f, 2.2f));
-            ringB.transform.SetParent(_portalSpinB, false);
-
-            var outerLens = CosmicSliceMeshFactory.CreateTorusObject("Outer Cyan Gravity Lens", 1.73f, 0.01f, CreatePortalGlow("Outer Cool Lens", CosmicPalette.Cyan, 0.08f, 0.52f));
-            outerLens.transform.SetParent(_portalRoot, false);
-            outerLens.transform.localScale = new Vector3(1f, 1f, 0.63f);
-
-            _portalLight = new GameObject("Portal Light").AddComponent<Light>();
-            _portalLight.transform.SetParent(_portalRoot, false);
-            _portalLight.transform.localPosition = new Vector3(0f, -0.28f, 0f);
-            _portalLight.type = LightType.Point;
-            _portalLight.color = new Color(0.25f, 0.48f, 1f);
-            _portalLight.range = 7.2f;
-            _portalLight.intensity = 2.8f;
-
-            BuildStarfield();
-        }
-
         private Material CreatePortalGlow(string materialName, Color color, float alpha, float pulseSpeed)
         {
             var material = new Material(additiveShader != null ? additiveShader : Shader.Find("Unlit/Color")) { name = materialName };
@@ -1113,7 +1102,7 @@ namespace CosmicSlice
             var breathing = 1f + Mathf.Sin(Time.unscaledTime * 2.8f) * 0.025f + _portalPulse * 0.1f;
             if (_state != GameState.Scanning)
             {
-                _portalRoot.localScale = Vector3.one * breathing;
+                _portalRoot.localScale = new Vector3(_portalCeilingScale * breathing, 1f, _portalCeilingScale * breathing);
             }
             _portalLight.intensity = 2.6f + Mathf.Sin(Time.unscaledTime * 3.1f) * 0.46f + _portalPulse * 3.4f;
 
@@ -1447,7 +1436,7 @@ namespace CosmicSlice
         {
             var accretion = new GameObject("Orbiting Accretion Dust");
             accretion.transform.SetParent(_portalRoot, false);
-            accretion.transform.localPosition = new Vector3(0f, -0.07f, 0f);
+            accretion.transform.localPosition = new Vector3(0f, 0.18f, 0f);
             accretion.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             var particles = accretion.AddComponent<ParticleSystem>();
             var main = particles.main;
@@ -1488,7 +1477,7 @@ namespace CosmicSlice
 
             var rain = new GameObject("Falling Starlight Filaments");
             rain.transform.SetParent(_portalRoot, false);
-            rain.transform.localPosition = new Vector3(0f, -0.08f, 0f);
+            rain.transform.localPosition = new Vector3(0f, 0.27f, 0f);
             rain.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             var rainParticles = rain.AddComponent<ParticleSystem>();
             var rainMain = rainParticles.main;

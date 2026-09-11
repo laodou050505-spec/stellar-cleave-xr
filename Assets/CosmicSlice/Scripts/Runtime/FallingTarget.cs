@@ -4,6 +4,7 @@ namespace CosmicSlice
 {
     public sealed class FallingTarget : MonoBehaviour
     {
+        public const float EntranceDuration = 0.18f;
         public TargetKind Kind { get; private set; }
         public bool QuantumPrimed { get; private set; }
         public bool Resolved { get; private set; }
@@ -38,7 +39,7 @@ namespace CosmicSlice
                 return;
             }
 
-            var intro = Mathf.Clamp01((Time.unscaledTime - _spawnTime) / 0.18f);
+            var intro = Mathf.Clamp01((Time.unscaledTime - _spawnTime) / EntranceDuration);
             transform.localScale = Vector3.one * Mathf.SmoothStep(0f, 1f, intro);
 
             _velocity += Vector3.down * (0.72f * Time.deltaTime);
@@ -69,6 +70,22 @@ namespace CosmicSlice
         public bool CanReceiveHit()
         {
             return !Resolved && Time.unscaledTime - _lastHitTime > 0.16f;
+        }
+
+        public void SynchronizeEntrance(float elapsed)
+        {
+            _spawnTime = Time.unscaledTime - Mathf.Clamp(elapsed, 0f, EntranceDuration);
+        }
+
+        public bool IsCompatibleWith(HandSide hand)
+        {
+            return Kind switch
+            {
+                TargetKind.Plasma => hand == HandSide.Left,
+                TargetKind.Meteor => hand == HandSide.Right,
+                TargetKind.Quantum => !QuantumPrimed || hand != _quantumFirstHand,
+                _ => false
+            };
         }
 
         public void RegisterHit()

@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &407977611
+--- !u!1 &60572911
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,7 +127,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 407977612}
+  - component: {fileID: 60572912}
   m_Layer: 0
   m_Name: Camera Offset
   m_TagString: Untagged
@@ -135,23 +135,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &407977612
+--- !u!4 &60572912
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 407977611}
+  m_GameObject: {fileID: 60572911}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1679028167}
-  m_Father: {fileID: 1555429846}
+  - {fileID: 336482494}
+  m_Father: {fileID: 1615614848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &943537446
+--- !u!1 &336482493
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159,202 +159,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 943537450}
-  - component: {fileID: 943537449}
-  - component: {fileID: 943537448}
-  - component: {fileID: 943537447}
-  m_Layer: 0
-  m_Name: Cosmic Slice - Complete Runtime
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &943537447
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 943537446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f15314c4eee7415798349dfd3f334f6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoCeilingLocator
---- !u!114 &943537448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 943537446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 360df0391980b4ec7a00887f3933432e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.CosmicSliceGame
-  hudBackdrop: {fileID: 2800000, guid: 07010dcb2e93840d28f75f54a8fecb0d, type: 3}
-  spacePanorama: {fileID: 2800000, guid: 782765ae463ab4687ae1e06a2e5ba8aa, type: 3}
-  spaceSetDressingModels:
-  - {fileID: 919132149155446097, guid: 631261fde1a72401ea8b948a4418d33f, type: 3}
-  - {fileID: 919132149155446097, guid: 6ad0d448b71d04ba88c17c7a9bc90ddf, type: 3}
-  - {fileID: 919132149155446097, guid: f44c4d387a3664f648f706a8ed00790b, type: 3}
-  - {fileID: 919132149155446097, guid: 4c3b7daa003e44717a1746e0ec46d49d, type: 3}
-  - {fileID: 919132149155446097, guid: a670b7dec717c44a98005080f0f80654, type: 3}
-  - {fileID: 919132149155446097, guid: e580969a7a7c447299bed243445dd649, type: 3}
-  - {fileID: 919132149155446097, guid: 3c86857a80997486d9d65feec55e4756, type: 3}
-  - {fileID: 919132149155446097, guid: da35167a923a14540822a3198dc9eac5, type: 3}
-  - {fileID: 919132149155446097, guid: 44f08253a8305410baa6328d998da868, type: 3}
-  additiveShader: {fileID: 4800000, guid: 202959154bbb04cd78bb6597a2bef2d7, type: 3}
-  particleShader: {fileID: 4800000, guid: d04ebdd3f7daf41ce9f30379636334f5, type: 3}
-  portalShader: {fileID: 4800000, guid: b09dd70684a5a45efab79236e38d0342, type: 3}
-  spaceBackdropShader: {fileID: 4800000, guid: a1254621db8584588bd63fd9618af1ca, type: 3}
-  standardShader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
-  music: {fileID: 8300000, guid: 1ee7312333a784f608ef42cc4d487a9a, type: 3}
-  portalLoop: {fileID: 8300000, guid: 0f18528d57d764652ac0c1e111384d83, type: 3}
-  bladeWhoosh: {fileID: 8300000, guid: e8476987376c0445d9f6fa523fda288f, type: 3}
-  positive: {fileID: 8300000, guid: 0efb18279bb3f4364b49ddae1c21902f, type: 3}
-  negative: {fileID: 8300000, guid: e5cd5f44aeb9f49f1ae8e3b869f0c99f, type: 3}
-  explosion: {fileID: 8300000, guid: 26ad2838cedb4464f8a85bbafd4fe4fd, type: 3}
---- !u!114 &943537449
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 943537446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 843d003bc89c04a27a482fc9eafdf3c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoDesktopRuntimeGate
---- !u!4 &943537450
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 943537446}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1555429843
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1555429846}
-  - component: {fileID: 1555429845}
-  - component: {fileID: 1555429844}
-  m_Layer: 0
-  m_Name: XR Origin - Floor
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1555429844
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1555429843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd9f82377aeb9704193bd866d119aaa5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.XR.PXR_Manager
-  screenFade: 0
-  eyeTracking: 0
-  trackingMode: -1
-  sharpeningMode: 0
-  sharpeningEnhance: 0
-  faceTracking: 0
-  lipsyncTracking: 0
-  lateLatching: 0
-  latelatchingDebug: 0
-  bodyTracking: 0
-  foveationLevel: -1
-  adaptiveResolution: 0
-  eyeFoveationLevel: -1
-  foveatedRenderingMode: 0
-  openMRC: 1
-  foregroundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  backgroundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  backgroundCamObj: {fileID: 0}
-  foregroundCamObj: {fileID: 0}
-  mrcBackgroundRT: {fileID: 0}
-  mrcForegroundRT: {fileID: 0}
-  adaptiveResolutionPowerSetting: 1
-  minEyeTextureScale: 0.7
-  maxEyeTextureScale: 1.26
-  enableSuperResolution: 0
-  useRecommendedAntiAliasingLevel: 1
-  usePremultipliedAlpha: 0
-  useLayerBlend: 0
-  srcColor: 1
-  dstColor: 1
-  srcAlpha: 1
-  dstAlpha: 1
---- !u!114 &1555429845
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1555429843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.CoreUtils::Unity.XR.CoreUtils.XROrigin
-  m_Camera: {fileID: 1679028170}
-  m_OriginBaseGameObject: {fileID: 1555429843}
-  m_CameraFloorOffsetObject: {fileID: 407977611}
-  m_RequestedTrackingOriginMode: 2
-  m_CameraYOffset: 0
---- !u!4 &1555429846
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1555429843}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -4.65}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 407977612}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1679028166
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1679028167}
-  - component: {fileID: 1679028170}
-  - component: {fileID: 1679028169}
-  - component: {fileID: 1679028168}
+  - component: {fileID: 336482494}
+  - component: {fileID: 336482497}
+  - component: {fileID: 336482496}
+  - component: {fileID: 336482495}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -362,28 +170,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1679028167
+--- !u!4 &336482494
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679028166}
+  m_GameObject: {fileID: 336482493}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.65, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 407977612}
+  m_Father: {fileID: 60572912}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1679028168
+--- !u!114 &336482495
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679028166}
+  m_GameObject: {fileID: 336482493}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c2fadf230d1919748a9aa21d40f74619, type: 3}
@@ -398,12 +206,12 @@ MonoBehaviour:
       m_Name: Head Position
       m_Type: 0
       m_ExpectedControlType: 
-      m_Id: 456c3cf2-f1b1-4a0a-bef0-40384744d446
+      m_Id: 0def0c92-5de4-4149-be4c-bb187cce980d
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings:
       - m_Name: 
-        m_Id: 15bbdd16-1df6-44b0-9409-8dfa8da29022
+        m_Id: 25801a44-6165-45e6-bce5-c30e8f59ce49
         m_Path: <XRHMD>/centerEyePosition
         m_Interactions: 
         m_Processors: 
@@ -418,12 +226,12 @@ MonoBehaviour:
       m_Name: Head Rotation
       m_Type: 0
       m_ExpectedControlType: 
-      m_Id: a6d34690-d118-4a0c-a253-87fe91cc3606
+      m_Id: 9a03994d-ebfb-4a18-855b-554072e9e832
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings:
       - m_Name: 
-        m_Id: ba53c3a8-aa03-477f-9750-8c766beb71b7
+        m_Id: a9d03897-8b3c-4947-9fb8-fb4301d0c136
         m_Path: <XRHMD>/centerEyeRotation
         m_Interactions: 
         m_Processors: 
@@ -438,7 +246,7 @@ MonoBehaviour:
       m_Name: Tracking State
       m_Type: 0
       m_ExpectedControlType: Integer
-      m_Id: 012b55c1-9143-40e8-a0de-9b50ac246d58
+      m_Id: ba937265-b56b-4f6b-874c-37affec61d4d
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings: []
@@ -448,7 +256,7 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: e7cf8797-2978-415c-b11b-20a2cabd7197
+    m_Id: 32d5588e-4ba2-468c-bd47-948b2fced630
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
@@ -457,30 +265,30 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: ffd33bc7-7000-4a1d-9169-35be63fb7b44
+    m_Id: 2744b3a7-153b-4ca5-bcae-a46b7e163416
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
---- !u!81 &1679028169
+--- !u!81 &336482496
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679028166}
+  m_GameObject: {fileID: 336482493}
   m_Enabled: 1
---- !u!20 &1679028170
+--- !u!20 &336482497
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679028166}
+  m_GameObject: {fileID: 336482493}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -514,16 +322,213 @@ Camera:
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
-  m_HDR: 1
+  m_HDR: 0
   m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &1176955928
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1176955932}
+  - component: {fileID: 1176955931}
+  - component: {fileID: 1176955930}
+  - component: {fileID: 1176955929}
+  m_Layer: 0
+  m_Name: Cosmic Slice - Complete Runtime
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1176955929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176955928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f15314c4eee7415798349dfd3f334f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoCeilingLocator
+--- !u!114 &1176955930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176955928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 360df0391980b4ec7a00887f3933432e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.CosmicSliceGame
+  hudBackdrop: {fileID: 2800000, guid: 07010dcb2e93840d28f75f54a8fecb0d, type: 3}
+  spacePanorama: {fileID: 2800000, guid: 782765ae463ab4687ae1e06a2e5ba8aa, type: 3}
+  spaceSetDressingModels:
+  - {fileID: 919132149155446097, guid: 631261fde1a72401ea8b948a4418d33f, type: 3}
+  - {fileID: 919132149155446097, guid: 6ad0d448b71d04ba88c17c7a9bc90ddf, type: 3}
+  - {fileID: 919132149155446097, guid: f44c4d387a3664f648f706a8ed00790b, type: 3}
+  - {fileID: 919132149155446097, guid: 4c3b7daa003e44717a1746e0ec46d49d, type: 3}
+  - {fileID: 919132149155446097, guid: a670b7dec717c44a98005080f0f80654, type: 3}
+  - {fileID: 919132149155446097, guid: e580969a7a7c447299bed243445dd649, type: 3}
+  - {fileID: 919132149155446097, guid: 3c86857a80997486d9d65feec55e4756, type: 3}
+  - {fileID: 919132149155446097, guid: da35167a923a14540822a3198dc9eac5, type: 3}
+  - {fileID: 919132149155446097, guid: 44f08253a8305410baa6328d998da868, type: 3}
+  additiveShader: {fileID: 4800000, guid: 202959154bbb04cd78bb6597a2bef2d7, type: 3}
+  particleShader: {fileID: 4800000, guid: d04ebdd3f7daf41ce9f30379636334f5, type: 3}
+  meteorHeadShader: {fileID: 4800000, guid: 10230f065cf774319aa166cdc097a374, type: 3}
+  meteorTrailShader: {fileID: 4800000, guid: 9ad97d950578a4c4db7910d185b14d4e, type: 3}
+  coverFeatherShader: {fileID: 4800000, guid: 482187cf4616e4e658c02aeff4a0d845, type: 3}
+  portalShader: {fileID: 4800000, guid: b09dd70684a5a45efab79236e38d0342, type: 3}
+  nebulaShader: {fileID: 4800000, guid: 4f0915195fba4f6d9558fca5be8993ce, type: 3}
+  portalNebulaTexture: {fileID: 2800000, guid: 51a4c2e51af14eedb5f98c91b4d92f4b, type: 3}
+  spaceBackdropShader: {fileID: 4800000, guid: a1254621db8584588bd63fd9618af1ca, type: 3}
+  standardShader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+  music: {fileID: 8300000, guid: 1ee7312333a784f608ef42cc4d487a9a, type: 3}
+  portalLoop: {fileID: 8300000, guid: 0f18528d57d764652ac0c1e111384d83, type: 3}
+  bladeWhoosh: {fileID: 8300000, guid: e8476987376c0445d9f6fa523fda288f, type: 3}
+  positive: {fileID: 8300000, guid: 0efb18279bb3f4364b49ddae1c21902f, type: 3}
+  negative: {fileID: 8300000, guid: e5cd5f44aeb9f49f1ae8e3b869f0c99f, type: 3}
+  explosion: {fileID: 8300000, guid: 26ad2838cedb4464f8a85bbafd4fe4fd, type: 3}
+--- !u!114 &1176955931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176955928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 843d003bc89c04a27a482fc9eafdf3c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoDesktopRuntimeGate
+--- !u!4 &1176955932
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176955928}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1615614845
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1615614848}
+  - component: {fileID: 1615614847}
+  - component: {fileID: 1615614846}
+  m_Layer: 0
+  m_Name: XR Origin - Floor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1615614846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1615614845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd9f82377aeb9704193bd866d119aaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.XR.PXR_Manager
+  screenFade: 0
+  eyeTracking: 0
+  trackingMode: -1
+  sharpeningMode: 0
+  sharpeningEnhance: 0
+  faceTracking: 0
+  lipsyncTracking: 0
+  lateLatching: 0
+  latelatchingDebug: 0
+  bodyTracking: 0
+  foveationLevel: -1
+  adaptiveResolution: 0
+  eyeFoveationLevel: -1
+  foveatedRenderingMode: 0
+  openMRC: 0
+  foregroundLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  backgroundLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  backgroundCamObj: {fileID: 0}
+  foregroundCamObj: {fileID: 0}
+  mrcBackgroundRT: {fileID: 0}
+  mrcForegroundRT: {fileID: 0}
+  adaptiveResolutionPowerSetting: 1
+  minEyeTextureScale: 0.7
+  maxEyeTextureScale: 1.26
+  enableSuperResolution: 0
+  useRecommendedAntiAliasingLevel: 1
+  usePremultipliedAlpha: 0
+  useLayerBlend: 0
+  srcColor: 1
+  dstColor: 1
+  srcAlpha: 1
+  dstAlpha: 1
+--- !u!114 &1615614847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1615614845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.CoreUtils::Unity.XR.CoreUtils.XROrigin
+  m_Camera: {fileID: 336482497}
+  m_OriginBaseGameObject: {fileID: 1615614845}
+  m_CameraFloorOffsetObject: {fileID: 60572911}
+  m_RequestedTrackingOriginMode: 2
+  m_CameraYOffset: 0
+--- !u!4 &1615614848
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1615614845}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -4.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 60572912}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1555429846}
-  - {fileID: 943537450}
+  - {fileID: 1615614848}
+  - {fileID: 1176955932}

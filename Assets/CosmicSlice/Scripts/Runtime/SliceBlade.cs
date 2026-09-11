@@ -7,6 +7,7 @@ namespace CosmicSlice
 {
     public sealed class SliceBlade : MonoBehaviour
     {
+        private const float ControllerRayDistance = 8f;
         private readonly HashSet<FallingTarget> _hitThisFrame = new();
         private readonly Collider[] _sliceHits = new Collider[32];
         private readonly RaycastHit[] _rayHits = new RaycastHit[32];
@@ -32,7 +33,10 @@ namespace CosmicSlice
         private Transform _emitter;
         private Transform _toolVisualRoot;
         private LineRenderer _controllerRay;
+        private Transform _pointerReticle;
+        private Material _pointerReticleMaterial;
         private bool _xrTriggerHeld;
+        private bool _xrTriggerWasHeldForFeedback;
         private FallingTarget _rayTargetWhileHeld;
         private float _desktopInputGraceUntil;
         private Vector2 _previousMousePosition;
@@ -135,6 +139,20 @@ namespace CosmicSlice
             _controllerRay.sharedMaterial = _trailMaterial;
             _controllerRay.startColor = new Color(color.r, color.g, color.b, 0.7f);
             _controllerRay.endColor = new Color(color.r, color.g, color.b, 0.08f);
+
+            _pointerReticleMaterial = new Material(_trailMaterial) { name = name + " Pointer Reticle" };
+            _pointerReticle = new GameObject(name + " World Aim Reticle").transform;
+            _pointerReticle.SetParent(transform, false);
+            var reticleCore = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            reticleCore.name = "Aim Point";
+            reticleCore.transform.SetParent(_pointerReticle, false);
+            reticleCore.transform.localScale = Vector3.one * 0.036f;
+            Destroy(reticleCore.GetComponent<Collider>());
+            reticleCore.GetComponent<Renderer>().sharedMaterial = _pointerReticleMaterial;
+            var reticleRing = CosmicSliceMeshFactory.CreateTorusObject("Aim Ring", 0.052f, 0.006f, _pointerReticleMaterial);
+            reticleRing.transform.SetParent(_pointerReticle, false);
+            reticleRing.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            _pointerReticle.gameObject.SetActive(false);
 
             // Set an immediately comfortable visual pose before the first XR input update.
             _toolVisualRoot.localPosition = new Vector3(sideSign * 0.12f, -0.18f, 0.32f);
@@ -363,22 +381,66 @@ namespace CosmicSlice
             var origin = tracked ? transform.TransformPoint(0f, 0f, 0.08f) : transform.position;
             var direction = tracked ? transform.forward : _camera.transform.forward;
             _controllerRay.enabled = tracked;
+            if (_pointerReticle != null)
+            {
+                _pointerReticle.gameObject.SetActive(tracked);
+            }
             if (!tracked)
             {
+                _xrTriggerWasHeldForFeedback = false;
                 return;
             }
 
-            var length = 5.4f;
+            var length = ControllerRayDistance;
+            FallingTarget aimedTarget = null;
+            var aimedStageButton = false;
             if (FindRayTarget(origin, direction, length, out var targetHit))
             {
                 length = targetHit.distance;
+                aimedTarget = targetHit.collider.GetComponentInParent<FallingTarget>();
             }
             else if (Physics.Raycast(origin, direction, out var hit, length, ~0, QueryTriggerInteraction.Collide))
             {
                 length = hit.distance;
+                var stageOption = hit.collider.GetComponent<CosmicWorldStageOption>();
+                aimedStageButton = stageOption != null && _game.IsStageButtonAvailable(stageOption.Index);
             }
+
+            var sideColor = _side == HandSide.Left ? CosmicPalette.Cyan : CosmicPalette.Amber;
+            var feedbackColor = aimedStageButton ? Color.white : sideColor;
+            if (aimedTarget != null)
+            {
+                feedbackColor = !aimedTarget.IsCompatibleWith(_side)
+                    ? CosmicPalette.Red
+                    : Color.white;
+            }
+
+            var heldBoost = _xrTriggerHeld ? 1f : 0f;
+            _controllerRay.widthMultiplier = Mathf.Lerp(1f, 1.7f, heldBoost);
+            _controllerRay.startColor = new Color(feedbackColor.r, feedbackColor.g, feedbackColor.b, _xrTriggerHeld ? 0.98f : 0.72f);
+            _controllerRay.endColor = new Color(feedbackColor.r, feedbackColor.g, feedbackColor.b, aimedTarget != null || aimedStageButton ? 0.92f : 0.22f);
             _controllerRay.SetPosition(0, origin);
             _controllerRay.SetPosition(1, origin + direction * length);
+
+            if (_pointerReticle != null)
+            {
+                _pointerReticle.position = origin + direction * length;
+                _pointerReticle.rotation = Quaternion.LookRotation(_camera.transform.forward, _camera.transform.up);
+                var targetScale = aimedTarget != null || aimedStageButton ? 1.25f : 0.72f;
+                if (_xrTriggerHeld) targetScale *= 0.72f;
+                targetScale *= 1f + Mathf.Sin(Time.unscaledTime * 10f) * (aimedTarget != null ? 0.08f : 0.025f);
+                _pointerReticle.localScale = Vector3.one * targetScale;
+                if (_pointerReticleMaterial != null && _pointerReticleMaterial.HasProperty("_Color"))
+                {
+                    _pointerReticleMaterial.SetColor("_Color", feedbackColor);
+                }
+            }
+
+            if (_xrTriggerHeld && !_xrTriggerWasHeldForFeedback)
+            {
+                Haptic(aimedTarget != null ? 0.24f : 0.08f, 0.025f);
+            }
+            _xrTriggerWasHeldForFeedback = _xrTriggerHeld;
         }
 
         private void DetectRaySlice(bool tracked)
@@ -398,7 +460,7 @@ namespace CosmicSlice
 
             var origin = transform.TransformPoint(0f, 0f, 0.08f);
             var direction = transform.forward;
-            if (!FindRayTarget(origin, direction, 5.4f, out var hit))
+            if (!FindRayTarget(origin, direction, ControllerRayDistance, out var hit))
             {
                 return;
             }
@@ -571,7 +633,7 @@ namespace CosmicSlice
 
         internal void QaRaySlice(Vector3 origin, Vector3 direction)
         {
-            if (!_game.IsQaMode || !FindRayTarget(origin, direction.normalized, 5.4f, out var hit))
+            if (!_game.IsQaMode || !FindRayTarget(origin, direction.normalized, ControllerRayDistance, out var hit))
             {
                 return;
             }
@@ -581,6 +643,12 @@ namespace CosmicSlice
             {
                 _game.HandleBladeHit(target, _side, direction.normalized, hit.point);
             }
+        }
+
+        internal bool HasWorldPointerFeedback()
+        {
+            return _controllerRay != null && _pointerReticle != null &&
+                   _pointerReticle.Find("Aim Point") != null && _pointerReticle.Find("Aim Ring") != null;
         }
 
         public void Haptic(float amplitude, float duration)

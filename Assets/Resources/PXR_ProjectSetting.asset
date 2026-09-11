@@ -33,8 +33,8 @@ MonoBehaviour:
   spatialAnchor: 0
   sceneCapture: 1
   sharedAnchor: 0
-  spatialMesh: 1
-  planeDetection: 1
+  spatialMesh: 0
+  planeDetection: 0
   secureMR: 0
   meshLod: 0
   superResolution: 0

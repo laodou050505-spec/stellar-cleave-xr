@@ -5,14 +5,14 @@ Shader "CosmicSlice/InsideSpacePanorama"
         _MainTex ("Panorama", 2D) = "black" {}
         _Tint ("Tint", Color) = (0.76, 0.9, 1, 1)
         _Exposure ("Exposure", Range(0, 3)) = 0.9
-        _Opacity ("MR Veil Opacity", Range(0, 1)) = 1
+        _Opacity ("Immersive Opacity (locked at 1)", Range(0, 1)) = 1
         _Softness ("Panorama Softness", Range(0, 2)) = 0
-        _AdaptiveAlpha ("MR Content Adaptive Alpha", Range(0, 1)) = 0
+        _AdaptiveAlpha ("Legacy MR Adaptive Alpha (disabled)", Range(0, 1)) = 0
     }
     SubShader
     {
-        Tags { "Queue"="Background" "RenderType"="Transparent" "IgnoreProjector"="True" }
-        Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
+        Tags { "Queue"="Background" "RenderType"="Opaque" "IgnoreProjector"="True" }
+        Blend Off
         Cull Front
         ZWrite Off
         ZTest LEqual
@@ -40,9 +40,7 @@ Shader "CosmicSlice/InsideSpacePanorama"
             sampler2D _MainTex;
             fixed4 _Tint;
             float _Exposure;
-            float _Opacity;
             float _Softness;
-            float _AdaptiveAlpha;
 
             v2f vert(appdata input)
             {
@@ -61,10 +59,10 @@ Shader "CosmicSlice/InsideSpacePanorama"
                 panorama += tex2D(_MainTex, input.uv + float2(0, blurStep.y)) * 0.15;
                 panorama += tex2D(_MainTex, input.uv - float2(0, blurStep.y)) * 0.15;
                 panorama.rgb *= _Tint.rgb * _Exposure;
-                float spaceSignal = max(panorama.r, max(panorama.g, panorama.b));
-                float featureMask = smoothstep(0.022, 0.17, spaceSignal);
-                float alpha = _Opacity * lerp(1.0, featureMask, _AdaptiveAlpha);
-                return fixed4(panorama.rgb, alpha);
+                // This is the immersive outer shell, not an MR veil. Keep alpha physically
+                // opaque as well as disabling blending so the compositor can never reveal
+                // passthrough through dark or low-signal portions of the panorama.
+                return fixed4(panorama.rgb, 1.0);
             }
             ENDCG
         }

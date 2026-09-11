@@ -27,7 +27,12 @@ namespace CosmicSlice
         [Header("Runtime Shaders")]
         public Shader additiveShader;
         public Shader particleShader;
+        public Shader meteorHeadShader;
+        public Shader meteorTrailShader;
+        public Shader coverFeatherShader;
         public Shader portalShader;
+        public Shader nebulaShader;
+        public Texture2D portalNebulaTexture;
         public Shader spaceBackdropShader;
         public Shader standardShader;
 
@@ -45,29 +50,6 @@ namespace CosmicSlice
         public Vector3 SlicePlaneCenter => _portalRoot != null
             ? _portalRoot.position
             : CosmicSliceDesign.ArenaOrigin + Vector3.up * CosmicSliceDesign.PortalHeightAboveArena;
-
-        public void ApplyDetectedCeiling(Vector3 trackingPosition)
-        {
-            if (_portalRoot == null)
-            {
-                return;
-            }
-
-            var worldPosition = _rigTransform != null
-                ? _rigTransform.TransformPoint(trackingPosition)
-                : trackingPosition;
-            worldPosition.y -= 0.07f;
-            _detectedCeilingPosition = worldPosition;
-            _hasDetectedCeiling = true;
-            // The portal is a deliberate arena landmark. Ceiling sensing informs status and the
-            // ceiling grid only; it must not relocate core targets into an arbitrary room pose.
-            if (_ceilingGridRoot != null)
-            {
-                _ceilingGridRoot.position = new Vector3(worldPosition.x, worldPosition.y + 0.025f, worldPosition.z);
-            }
-            _portalPulse = 1f;
-            SetEvent(_state == GameState.Playing ? "CEILING MAP SAVED" : "REAL CEILING LOCKED", CosmicPalette.Cyan, 2.2f);
-        }
 
         private readonly List<FallingTarget> _targets = new();
         private readonly Dictionary<TargetKind, Material> _targetMaterials = new();
@@ -89,6 +71,10 @@ namespace CosmicSlice
         private Transform _spaceVistaRoot;
         private Transform _userSpaceModelRoot;
         private Transform _cosmicDustRoot;
+        private Transform _leftMeteorShowerRoot;
+        private Transform _rightMeteorShowerRoot;
+        private ParticleSystem _leftMeteorShower;
+        private ParticleSystem _rightMeteorShower;
         private Transform _scanIntroRoot;
         private Transform _scanGridRoot;
         private Transform _scanCurtainRoot;
@@ -99,6 +85,11 @@ namespace CosmicSlice
         private LineRenderer _scanWaveCrest;
         private LineRenderer _scanWaveEcho;
         private ParticleSystem _scanWaveParticles;
+        private Transform _scanFollowRoot;
+        private Mesh _scanFollowMesh;
+        private Material _scanFollowMaterial;
+        private LineRenderer _scanFollowCrest;
+        private LineRenderer _scanFollowEcho;
         private readonly List<LineRenderer> _scanIntroLines = new();
         private readonly Dictionary<LineRenderer, Vector2> _scanIntroBaseAlphas = new();
         private Transform _distantPlanet;
@@ -144,6 +135,10 @@ namespace CosmicSlice
         private float _scanTime;
         private float _timeRemaining;
         private float _spawnTimer;
+        private long _nextSpawnBeat;
+        private long _lastVisualizedBeat = -1;
+        private int _lastMusicTimeSamples;
+        private bool _musicBeatClockReady;
         private float _eventTimer;
         private float _overdriveTimer;
         private float _portalPulse;
@@ -166,6 +161,12 @@ namespace CosmicSlice
 
         private const float RoundDuration = 75f;
         private const int MaxLives = 3;
+        // Midnight Pulse's decoded waveform measures at approximately 127.12 BPM. Gameplay reads the live
+        // AudioSource sample position, so target entrances remain locked to the audible track
+        // after pauses, frame hitches and clip loops instead of drifting on a frame timer.
+        private const float MusicBpm = 127.12f;
+        // The low-frequency kick downbeat begins about 18 ms after the decoded clip start.
+        private const float MusicBeatPhaseSeconds = 0.018f;
         private void Awake()
         {
             _qaMode = HasCommandLineFlag("-cosmic-qa");
@@ -215,6 +216,8 @@ namespace CosmicSlice
             AdoptGameplayRoot(_spaceVistaRoot);
             AdoptGameplayRoot(_userSpaceModelRoot);
             AdoptGameplayRoot(_cosmicDustRoot);
+            AdoptGameplayRoot(_leftMeteorShowerRoot);
+            AdoptGameplayRoot(_rightMeteorShowerRoot);
             AdoptGameplayRoot(_scanIntroRoot);
             AdoptGameplayRoot(_portalRoot);
             if (_leftBlade != null) AdoptGameplayRoot(_leftBlade.transform);
@@ -243,6 +246,21 @@ namespace CosmicSlice
         private void SetGameplayStageVisible(bool visible)
         {
             _gameplayStageActive = visible;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // Switch passthrough in the same transition that swaps TitleRoot for GameplayRoot.
+            // PicoCeilingLocator repeats this on scan start and owns provider cleanup, but
+            // doing it here avoids a one-frame opaque gap after START.
+            ByteDance.PICO.XR.PXR_Manager.EnableVideoSeeThrough = visible;
+            ByteDance.PICO.XR.PXR_MixedReality.EnableVideoSeeThroughEffect(false);
+#endif
+            if (_camera != null)
+            {
+                var background = visible ? MrPreviewClearColor : Color.black;
+                background.a = visible && Application.platform == RuntimePlatform.Android ? 0f : 1f;
+                _camera.clearFlags = CameraClearFlags.SolidColor;
+                _camera.backgroundColor = background;
+                _camera.allowHDR = false;
+            }
             if (_gameplayRoot != null)
             {
                 _gameplayRoot.gameObject.SetActive(visible);
@@ -280,9 +298,13 @@ namespace CosmicSlice
             var unscaledDelta = Time.unscaledDeltaTime;
             _portalPulse = Mathf.Max(0f, _portalPulse - unscaledDelta * 2.4f);
             AnimatePortal(unscaledDelta);
+            AnimatePortalNebula(unscaledDelta);
             UpdateHeadTracking();
+            if (_gameplayStageActive) UpdateMeteorShowerAnchors();
             AnimateSpaceVista(unscaledDelta);
             UpdateHudFacing(unscaledDelta);
+            RefreshConsolePresentation();
+            UpdateStageControlVisuals(unscaledDelta);
             if (_musicSource != null)
             {
                 _musicSource.volume = Mathf.MoveTowards(_musicSource.volume, _musicTargetVolume, unscaledDelta * 0.12f);
@@ -309,43 +331,42 @@ namespace CosmicSlice
                     UpdateCover(unscaledDelta);
                     break;
                 case GameState.Scanning:
-                    UpdateScanning(unscaledDelta);
+                    UpdatePresentedScanning(unscaledDelta, CanPresentOpening());
                     break;
                 case GameState.Ready:
-                    if (WasStartPressed())
-                    {
-                        BeginRound();
-                    }
+                    UpdateStageControls(unscaledDelta);
                     break;
                 case GameState.Playing:
                     UpdateRound(unscaledDelta);
                     break;
                 case GameState.Results:
-                    if (WasStartPressed())
-                    {
-                        EnterScanning();
-                    }
+                    UpdateStageControls(unscaledDelta);
                     break;
             }
         }
 
         private void OnDisable()
         {
+            Camera.onPostRender -= OnOpeningCameraRendered;
             Time.timeScale = 1f;
             _musicTargetVolume = 0.11f;
         }
 
-        private void EnterScanning()
+        private void EnterScanning(bool roomPrepared = false)
         {
             SetGameplayStageVisible(true);
-            ResetToCurrentStageStart(resetHeadPose: false);
+            ResetToCurrentStageStart(resetHeadPose: false, relocateCeiling: !roomPrepared);
             ClearTargets();
             _state = GameState.Scanning;
+            _stagePending = -1;
+            _stageSelected = -1;
             SetCoverVisible(false);
             DisposeTitleRoot();
             BuildGameplayHudIfNeeded();
             SetBladesVisible(true);
             _scanTime = 0f;
+            ResetOpeningPresentation();
+            CaptureOpeningOrigin();
             _score = 0;
             _combo = 0;
             _bestCombo = 0;
@@ -354,6 +375,7 @@ namespace CosmicSlice
             _overdriveTimer = 0f;
             Time.timeScale = 1f;
             _resultGroup.alpha = 0f;
+            _resultGroup.gameObject.SetActive(false);
             _resultGroup.blocksRaycasts = false;
             SetTutorialVisible(false);
             SetCoreHudVisible(false);
@@ -367,7 +389,7 @@ namespace CosmicSlice
             {
                 _scanIntroRoot.gameObject.SetActive(true);
             }
-            _statusText.text = "LOCAL SPACE SURVEY\n00%";
+            _statusText.text = "OPENING ROOM LINK\nLOOK UP TOWARD THE CEILING";
             SetEvent(string.Empty, CosmicPalette.Cyan, 0f);
             UpdateSpatialScanIntro(0f);
             UpdateHud();
@@ -386,63 +408,64 @@ namespace CosmicSlice
             _coverGroup = null;
             _coverStartHitArea = null;
             _coverExitHitArea = null;
-            _coverFocusBar = null;
-            _coverOptionLabels = null;
+            _coverHomePage = null;
+            _coverGuidePage = null;
+            _coverArtwork = null;
+            _guideArtwork = null;
+            System.Array.Clear(_menuControls, 0, _menuControls.Length);
         }
 
         private void UpdateScanning(float deltaTime)
         {
-            _scanTime += deltaTime;
-            var progress = Mathf.Clamp01(_scanTime / 4.6f);
+            _scanTime = Mathf.Min(OpeningScanDuration, _scanTime + deltaTime);
+            // Give the room survey enough time to read as a deliberate opening beat in MR.
+            var progress = Mathf.Clamp01(_scanTime / OpeningScanDuration);
             UpdateSpatialScanIntro(progress);
             SetScanEnvironmentVisible(
-                progress >= 0.28f,
-                progress >= 0.44f,
-                progress >= 0.52f,
-                progress >= 0.61f,
-                progress >= 0.69f);
-            SetCoreHudVisible(progress >= 0.76f);
+                progress >= 0.88f,
+                progress >= 0.90f,
+                progress >= 0.92f,
+                progress >= 0.94f,
+                progress >= 0.96f);
+            SetCoreHudVisible(progress >= 0.94f);
 
-            if (progress < 0.26f)
-            {
-                _statusText.text = $"LOCAL SPACE SURVEY\n{Mathf.RoundToInt(progress / 0.26f * 24f):00}%";
-            }
-            else if (progress < 0.68f)
-            {
-                _statusText.text = $"GEOMETRY SWEEP\n{Mathf.RoundToInt(Mathf.InverseLerp(0.26f, 0.68f, progress) * 100f):00}%";
-            }
-            else
-            {
-                _statusText.text = $"ANOMALY FIELD LINK\n{Mathf.RoundToInt(Mathf.InverseLerp(0.68f, 1f, progress) * 100f):00}%";
-            }
+            _statusText.text = progress < 0.88f ? string.Empty :
+                _hasDetectedCeiling ? "CEILING ANCHORED\nPREPARING THE ANOMALY" : "SURVEY COMPLETE\nCHECKING YOUR CEILING";
 
-            if (_portalRoot != null && progress >= 0.69f)
+            if (_portalRoot != null && progress >= 0.88f && CanUsePortal)
             {
                 _portalRoot.gameObject.SetActive(true);
-                var portalProgress = Mathf.InverseLerp(0.69f, 1f, progress);
-                _portalRoot.localScale = Vector3.one * Mathf.SmoothStep(0.02f, 1f, portalProgress);
+                var portalProgress = Mathf.InverseLerp(0.88f, 1f, progress);
+                var reveal = Mathf.SmoothStep(0.02f, 1f, portalProgress);
+                _portalRoot.localScale = new Vector3(_portalCeilingScale * reveal, reveal, _portalCeilingScale * reveal);
                 _portalLight.intensity = Mathf.Lerp(0.18f, 3.2f, portalProgress);
             }
             if (progress >= 1f)
             {
+                Debug.Log($"COSMIC_OPENING_COMPLETE visibleSeconds={_scanTime:F3}");
                 _state = GameState.Ready;
                 if (_scanIntroRoot != null) _scanIntroRoot.gameObject.SetActive(false);
                 SetScanEnvironmentVisible(true, true, true, true, true);
                 SetCoreHudVisible(true);
-                _statusText.text = "PORTAL STABLE\nTRIGGER TO START";
+                RefreshCeilingReadyStatus();
                 SetTutorialVisible(true);
-                SetEvent("ANOMALY CONTAINMENT READY", CosmicPalette.Silver, 2.4f);
+                _stageSelected = CanUsePortal || _ceilingScanComplete ? 0 : 1;
+                SetEvent(string.Empty, CosmicPalette.Silver, 0f);
                 PlaySfx(positive, 0.65f, 0.82f);
             }
         }
 
         private void BeginRound()
         {
+            if (!CanUsePortal) { RefreshCeilingReadyStatus(); return; }
             _state = GameState.Playing;
+            SetCoreHudVisible(true);
             _timeRemaining = RoundDuration;
             _spawnTimer = 0.72f;
+            ArmMusicBeatClock();
             _statusText.text = string.Empty;
             _resultGroup.alpha = 0f;
+            _resultGroup.gameObject.SetActive(false);
             _resultGroup.blocksRaycasts = false;
             SetTutorialVisible(false);
             _musicTargetVolume = 0.24f;
@@ -452,8 +475,8 @@ namespace CosmicSlice
 
         private void UpdateRound(float deltaTime)
         {
+            if (!CanUsePortal) { EnterScanning(); return; }
             _timeRemaining -= deltaTime;
-            _spawnTimer -= deltaTime;
 
             if (_overdriveTimer > 0f)
             {
@@ -466,15 +489,31 @@ namespace CosmicSlice
                 }
             }
 
-            if (_spawnTimer <= 0f)
+            if (TryGetMusicBeat(out var musicBeat))
             {
-                if (_targets.Count < 3)
+                if (musicBeat != _lastVisualizedBeat)
                 {
-                    SpawnTarget();
+                    _lastVisualizedBeat = musicBeat;
+                    _portalPulse = Mathf.Max(_portalPulse, musicBeat % 4 == 0 ? 0.72f : 0.32f);
+                    EmitMeteorShowerBeat(musicBeat);
                 }
-                var elapsed = 1f - _timeRemaining / RoundDuration;
-                var interval = Mathf.Lerp(1.28f, 0.68f, elapsed);
-                _spawnTimer = _overdriveTimer > 0f ? interval * 0.63f : interval;
+
+                AdvanceMusicSpawns(_lastMusicTimeSamples, _musicSource.clip.frequency);
+            }
+            else if (_musicSource == null || _musicSource.clip == null)
+            {
+                // Audio may be absent in a development scene; retain a deterministic fallback.
+                _spawnTimer -= deltaTime;
+                if (_spawnTimer <= 0f)
+                {
+                    if (_targets.Count < 3)
+                    {
+                        SpawnTarget();
+                    }
+                    var elapsed = 1f - _timeRemaining / RoundDuration;
+                    var interval = Mathf.Lerp(1.28f, 0.68f, elapsed);
+                    _spawnTimer = _overdriveTimer > 0f ? interval * 0.63f : interval;
+                }
             }
 
             if (_timeRemaining <= 0f || _lives <= 0)
@@ -483,6 +522,101 @@ namespace CosmicSlice
             }
 
             UpdateHud();
+        }
+
+        private void ArmMusicBeatClock()
+        {
+            _musicBeatClockReady = _musicSource != null && _musicSource.clip != null && _musicSource.isPlaying;
+            _lastVisualizedBeat = -1;
+            _lastMusicTimeSamples = _musicBeatClockReady ? _musicSource.timeSamples : 0;
+            if (TryGetMusicBeat(out var currentBeat))
+            {
+                _lastVisualizedBeat = currentBeat;
+                ResetMusicSpawnGrid(_lastMusicTimeSamples, _musicSource.clip.frequency);
+            }
+        }
+
+        private bool TryGetMusicBeat(out long beat)
+        {
+            beat = 0;
+            if (_musicSource == null || !_musicSource.isPlaying ||
+                _musicSource.clip == null || _musicSource.clip.frequency <= 0 || _musicSource.clip.samples <= 0)
+            {
+                _musicBeatClockReady = false;
+                return false;
+            }
+
+            var samples = _musicSource.timeSamples;
+            beat = ObserveMusicSample(samples, _musicSource.clip.frequency);
+            return true;
+        }
+
+        private long ObserveMusicSample(int samples, int frequency)
+        {
+            if (!_musicBeatClockReady || samples < _lastMusicTimeSamples)
+            {
+                // A loop is the same song starting again, not an arbitrary extension of its
+                // beat grid. Also recover when a clip begins playing after the round starts.
+                _musicBeatClockReady = true;
+                _lastVisualizedBeat = -1;
+                ResetMusicSpawnGrid(samples, frequency);
+            }
+            _lastMusicTimeSamples = samples;
+            return MusicBeatAtSample(samples, frequency);
+        }
+
+        private static long NextAlignedSpawnBeat(long beat, int step)
+        {
+            step = System.Math.Max(1, step);
+            return (System.Math.Max(0L, beat) / step + 1L) * step;
+        }
+
+        private void ResetMusicSpawnGrid(long samples, int frequency)
+        {
+            var leadSamples = (long)System.Math.Round(FallingTarget.EntranceDuration * frequency);
+            _nextSpawnBeat = NextAlignedSpawnBeat(MusicBeatAtSample(samples + leadSamples, frequency), GetSpawnBeatStep());
+        }
+
+        private void AdvanceMusicSpawns(long samples, int frequency)
+        {
+            var leadSamples = (long)System.Math.Round(FallingTarget.EntranceDuration * frequency);
+            var preparationBeat = MusicBeatAtSample(samples + leadSamples, frequency);
+            if (preparationBeat < _nextSpawnBeat) return;
+
+            var beatStart = System.Math.Round(MusicBeatPhaseSeconds * frequency) + _nextSpawnBeat * 60d * frequency / MusicBpm;
+            var entranceElapsed = (float)((samples - (beatStart - leadSamples)) / frequency);
+            // Keep the existing 180 ms reveal, but let its full-size accent land on the kick.
+            // Skip stale beats after a hitch or a full arena; never replay a burst of missed notes.
+            if (preparationBeat == _nextSpawnBeat && entranceElapsed >= 0f && entranceElapsed <= 0.08f && _targets.Count < 3)
+            {
+                var target = SpawnTarget();
+                target.SynchronizeEntrance(entranceElapsed);
+            }
+            _nextSpawnBeat = NextAlignedSpawnBeat(preparationBeat, GetSpawnBeatStep());
+        }
+
+        private static long MusicBeatAtSample(long absoluteSamples, int frequency)
+        {
+            if (absoluteSamples <= 0 || frequency <= 0)
+            {
+                return 0;
+            }
+
+            var phaseSamples = (long)System.Math.Round(MusicBeatPhaseSeconds * frequency);
+            absoluteSamples = System.Math.Max(0L, absoluteSamples - phaseSamples);
+            var beatsPerSample = MusicBpm / (60d * frequency);
+            return (long)System.Math.Floor(absoluteSamples * beatsPerSample);
+        }
+
+        private int GetSpawnBeatStep()
+        {
+            if (_overdriveTimer > 0f)
+            {
+                return 1;
+            }
+
+            var elapsed = 1f - Mathf.Clamp01(_timeRemaining / RoundDuration);
+            return elapsed < 0.34f ? 4 : 2;
         }
 
         private void EndRound()
@@ -499,7 +633,14 @@ namespace CosmicSlice
             var contained = _lives > 0;
             var rank = !contained ? "F" : _score >= 9000 ? "S" : _score >= 6000 ? "A" : _score >= 3500 ? "B" : "C";
             var heading = contained ? "CONTAINMENT COMPLETE" : "LIFE LINK LOST";
-            _resultText.text = $"{heading}\n\nRANK  {rank}\n\n{_score:000000}\nSCORE   //   CHAIN {_bestCombo:00}\nLIFE LINK   {_lives}/{MaxLives}\n\nTRIGGER TO RESCAN";
+            _resultText.text = heading;
+            _resultRankText.text = rank;
+            _resultScoreText.text = _score.ToString("000000");
+            _resultDetailText.text = $"BEST CHAIN  {_bestCombo:00}          LIVES  {_lives}/{MaxLives}" +
+                (_ceilingPreviewSelected ? "\nPREVIEW RUN / CEILING NOT MAPPED" : "");
+            _resultGroup.gameObject.SetActive(true);
+            SetCoreHudVisible(false);
+            _stageSelected = 2;
             _resultGroup.alpha = 1f;
             _resultGroup.blocksRaycasts = true;
             SetTutorialVisible(false);
@@ -509,7 +650,7 @@ namespace CosmicSlice
             PlaySfx(contained ? positive : negative, 0.9f, rank == "S" ? 1.25f : 0.92f);
         }
 
-        private void SpawnTarget()
+        private FallingTarget SpawnTarget()
         {
             var roll = Random.value;
             var kind = roll < 0.12f ? TargetKind.Bomb
@@ -517,7 +658,7 @@ namespace CosmicSlice
                 : roll < 0.65f ? TargetKind.Plasma
                 : TargetKind.Meteor;
 
-            CreateTarget(
+            return CreateTarget(
                 kind,
                 FindSeparatedSpawnPosition(),
                 new Vector3(Random.Range(-0.24f, 0.24f), Random.Range(-0.32f, -0.16f), Random.Range(-0.05f, 0.08f)));
@@ -528,10 +669,10 @@ namespace CosmicSlice
             var candidate = _portalRoot.position;
             for (var attempt = 0; attempt < 10; attempt++)
             {
-                candidate = _portalRoot.position + new Vector3(
-                    Random.Range(-0.88f, 0.88f),
-                    Random.Range(-0.15f, 0.04f),
-                    Random.Range(-0.28f, 0.28f));
+                candidate = _portalRoot.position + _portalRoot.rotation * new Vector3(
+                    Random.Range(-0.75f, 0.75f) * _portalCeilingScale,
+                    Random.Range(-0.15f, -0.08f),
+                    Random.Range(-0.28f, 0.28f) * _portalCeilingScale);
                 var separated = true;
                 foreach (var target in _targets)
                 {

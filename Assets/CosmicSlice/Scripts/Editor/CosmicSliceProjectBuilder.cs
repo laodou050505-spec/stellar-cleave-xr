@@ -91,12 +91,22 @@ namespace CosmicSlice.Editor
             var xrAppMode = pxr != null && pxr.appMode == PXR_Settings.AppMode.XR;
             var projectSettings = LoadPicoProjectSettingsAsset();
             var nativeXrProject = projectSettings != null && !projectSettings.isSpatialAdapter;
-            var immersiveManifest = HasPicoImmersiveManifest();
-            var valid = inputHandler == 1 && hasPico && multiview && xrAppMode && nativeXrProject && immersiveManifest &&
+            var scenePicoManager = UnityEngine.Object.FindFirstObjectByType<PXR_Manager>();
+            var sceneMrcOff = scenePicoManager != null && !scenePicoManager.openMRC &&
+                              !scenePicoManager.usePremultipliedAlpha && !scenePicoManager.useLayerBlend;
+            var mixedRealityConfig = projectSettings != null &&
+                                     !projectSettings.openMRC &&
+                                     projectSettings.videoSeeThrough &&
+                                     projectSettings.sceneCapture &&
+                                     !projectSettings.spatialMesh &&
+                                     !projectSettings.planeDetection &&
+                                     projectSettings.mrSafeguard;
+            var picoXrManifest = HasPicoXrManifest();
+            var valid = inputHandler == 1 && hasPico && multiview && xrAppMode && nativeXrProject && sceneMrcOff && mixedRealityConfig && picoXrManifest &&
                         PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64 &&
                         PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP &&
                         PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity;
-            Debug.Log($"COSMIC_SLICE_VALIDATION inputSystemOnly={inputHandler == 1} picoLoader={hasPico} xrAppMode={xrAppMode} nativeXrProject={nativeXrProject} immersiveManifest={immersiveManifest} multiview={multiview} arm64={PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64} il2cpp={PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP} activity={PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity}");
+            Debug.Log($"COSMIC_SLICE_VALIDATION inputSystemOnly={inputHandler == 1} picoLoader={hasPico} xrAppMode={xrAppMode} nativeXrProject={nativeXrProject} sceneMrcOff={sceneMrcOff} mixedRealityConfig={mixedRealityConfig} mrcRecordingOff={projectSettings != null && !projectSettings.openMRC} videoSeeThrough={projectSettings != null && projectSettings.videoSeeThrough} sceneCapture={projectSettings != null && projectSettings.sceneCapture} spatialMeshOff={projectSettings != null && !projectSettings.spatialMesh} planeDetectionOff={projectSettings != null && !projectSettings.planeDetection} mrSafeguard={projectSettings != null && projectSettings.mrSafeguard} picoXrManifest={picoXrManifest} multiview={multiview} arm64={PlayerSettings.Android.targetArchitectures == AndroidArchitecture.ARM64} il2cpp={PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android) == ScriptingImplementation.IL2CPP} activity={PlayerSettings.Android.applicationEntry == AndroidApplicationEntry.Activity}");
             if (!valid)
             {
                 throw new BuildFailedException("Cosmic Slice PICO baseline validation failed. See the preceding validation line.");
@@ -107,9 +117,9 @@ namespace CosmicSlice.Editor
         {
             PlayerSettings.companyName = "Anomaly Lab";
             PlayerSettings.productName = "星际切割";
-            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.bundleVersion = "0.1.7";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.anomalylab.cosmicslice");
-            PlayerSettings.Android.bundleVersionCode = 1;
+            PlayerSettings.Android.bundleVersionCode = 8;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
@@ -174,10 +184,13 @@ namespace CosmicSlice.Editor
             EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, settingsStore, true);
 
             var projectSettings = LoadPicoProjectSettingsAsset();
+            // Native PICO MR: passthrough is the gameplay background, while Scene Capture is
+            // used only to locate the real room's ceiling. openMRC is external MR recording.
+            projectSettings.openMRC = false;
             projectSettings.videoSeeThrough = true;
             projectSettings.sceneCapture = true;
-            projectSettings.spatialMesh = true;
-            projectSettings.planeDetection = true;
+            projectSettings.spatialMesh = false;
+            projectSettings.planeDetection = false;
             projectSettings.mrSafeguard = true;
             projectSettings.meshLod = PxrMeshLod.Low;
             projectSettings.handTracking = false;
@@ -241,7 +254,7 @@ namespace CosmicSlice.Editor
             return projectSettings;
         }
 
-        private static bool HasPicoImmersiveManifest()
+        private static bool HasPicoXrManifest()
         {
             var manifestPath = Path.Combine(Application.dataPath, "Plugins", "Android", "AndroidManifest.xml");
             if (!File.Exists(manifestPath))
@@ -269,7 +282,10 @@ namespace CosmicSlice.Editor
             var xrOrigin = xrOriginObject.AddComponent<XROrigin>();
             xrOrigin.RequestedTrackingOriginMode = XROrigin.TrackingOriginMode.Floor;
             xrOrigin.CameraYOffset = 0f;
-            xrOriginObject.AddComponent<PXR_Manager>();
+            var picoManager = xrOriginObject.AddComponent<PXR_Manager>();
+            picoManager.openMRC = false;
+            picoManager.usePremultipliedAlpha = false;
+            picoManager.useLayerBlend = false;
 
             var offset = new GameObject("Camera Offset");
             offset.transform.SetParent(xrOriginObject.transform, false);
@@ -280,6 +296,9 @@ namespace CosmicSlice.Editor
             cameraObject.transform.SetParent(offset.transform, false);
             cameraObject.transform.localPosition = new Vector3(0f, CosmicSliceDesign.TitleEyeHeight, 0f);
             var camera = cameraObject.AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            camera.allowHDR = false;
             cameraObject.AddComponent<AudioListener>();
             var trackedPose = cameraObject.AddComponent<TrackedPoseDriver>();
             trackedPose.trackingType = TrackedPoseDriver.TrackingType.RotationAndPosition;
@@ -307,8 +326,13 @@ namespace CosmicSlice.Editor
                 LoadSpaceModel("9/tripo_convert_fa976724-2c28-4e99-8edf-1d7493ef19c3.fbx")
             };
             game.additiveShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/AdditiveGlow.shader");
+            game.meteorHeadShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/MeteorHead.shader");
+            game.meteorTrailShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/MeteorTrail.shader");
+            game.coverFeatherShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/CoverFeather.shader");
             game.particleShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/SoftParticleGlow.shader");
             game.portalShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/PortalVoid.shader");
+            game.nebulaShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/PortalNebula.shader");
+            game.portalNebulaTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/CosmicSliceNebula/NebulaWisps.png");
             game.spaceBackdropShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/CosmicSlice/Shaders/InsideSpacePanorama.shader");
             game.standardShader = Shader.Find("Standard");
             game.music = LoadAudio("MidnightPulse.mp3");

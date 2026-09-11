@@ -4,86 +4,62 @@ using UnityEngine.UI;
 
 namespace CosmicSlice
 {
+    // THESIS: Restore the preferred emerald CRT nebula and slender coral slash identity.
+    // OWN-WORLD: Pine-black phosphor, generated STELLAR CLEAVE lettering, precise live controls.
+    // STORY: Start a round or learn the four target rules, then enter the real-room MR stage.
+    // FIRST VIEWPORT: Coral title and diagonal slash above live Start / How to Play / Exit controls.
+    // FORM: Continuation of the user's Nano Banana cover; guide inherits the same material.
+    // FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
     public sealed partial class CosmicSliceGame
     {
         private RectTransform _coverRoot;
         private RectTransform _coverStartHitArea;
         private RectTransform _coverExitHitArea;
-        private RectTransform _coverFocusBar;
         private CanvasGroup _coverGroup;
-        private Text[] _coverOptionLabels;
         private Text _coverStatusText;
         private Text _coverPromptText;
+        private RectTransform _coverHomePage;
+        private RectTransform _coverGuidePage;
+        private RawImage _coverArtwork;
+        private RawImage _guideArtwork;
+        private readonly MenuControl[] _menuControls = new MenuControl[5];
         private int _coverSelection;
+        private int _coverHovered = -1;
+        private int _coverInputHand = -1;
+        private int _coverPendingAction = -1;
+        private float _coverActionDelay;
         private float _coverTransitionTimer;
+        private float _coverPresentationStableTime;
         private bool _coverTransitioning;
+        private bool _coverExitRequested;
+        private bool _coverGuideVisible;
+        private readonly LineRenderer[] _coverControllerRays = new LineRenderer[2];
+        private readonly Transform[] _coverControllerReticles = new Transform[2];
+        private readonly Material[] _coverPointerMaterials = new Material[2];
+        private readonly bool[] _coverPointerTriggerHeld = new bool[2];
+        private readonly bool[] _coverPointerTriggerArmed = new bool[2];
+        private static readonly Color MenuInk = new(0.012f, 0.033f, 0.030f, 1f);
+        private static readonly Color MenuPaper = new(0.87f, 0.97f, 0.93f, 1f);
+        private static readonly Color MenuAccent = new(1f, 0.34f, 0.23f, 1f);
 
-        private void UpdateWorldMenuRay()
+        private sealed class MenuControl
         {
-            if (_camera == null || _coverGroup == null || _coverGroup.alpha < 0.9f)
-            {
-                return;
-            }
-
-            var pointer = GetWorldPointerRay(out var pressed);
-            if (!Physics.Raycast(pointer, out var hit, 8f))
-            {
-                return;
-            }
-            var option = hit.collider.GetComponent<CosmicWorldMenuOption>();
-            if (option == null)
-            {
-                return;
-            }
-
-            SelectCoverOption(option.Selection, false);
-            if (pressed)
-            {
-                ActivateCoverSelection();
-            }
-        }
-
-        private Ray GetWorldPointerRay(out bool pressed)
-        {
-            pressed = false;
-            // In the emulator, controller tracking often remains valid even while the user is
-            // operating the host window.  A live mouse gesture must therefore win over that
-            // dormant tracked ray so START can be selected with the desktop fallback.
-            if (Mouse.current != null &&
-                (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed ||
-                 Mouse.current.delta.ReadValue().sqrMagnitude > 0.01f))
-            {
-                pressed = Mouse.current.leftButton.wasPressedThisFrame;
-                return _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
-            }
-
-            foreach (var node in new[] { UnityEngine.XR.XRNode.RightHand, UnityEngine.XR.XRNode.LeftHand })
-            {
-                var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
-                if (!device.isValid || !device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out var position))
-                {
-                    continue;
-                }
-
-                device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out var rotation);
-                device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out pressed);
-                return new Ray(_rigTransform.TransformPoint(position), _rigTransform.rotation * rotation * Vector3.forward);
-            }
-
-            if (Mouse.current != null)
-            {
-                pressed = Mouse.current.leftButton.wasPressedThisFrame;
-                return _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
-            }
-            return new Ray(_camera.transform.position, _camera.transform.forward);
+            public RectTransform Rect;
+            public CosmicPanelGraphic Fill;
+            public Outline Outline;
+            public Text Label;
+            public Image Marker;
+            public float Press;
         }
 
         private void EnterCover()
         {
             _state = GameState.Cover;
             _coverSelection = 0;
+            _coverPendingAction = -1;
             _coverTransitionTimer = 0f;
             _coverTransitioning = false;
+            _coverExitRequested = false;
             ClearTargets();
             Time.timeScale = 1f;
             _musicTargetVolume = 0.08f;
@@ -96,188 +72,295 @@ namespace CosmicSlice
                 _resultGroup.blocksRaycasts = false;
             }
             SetCoverVisible(true);
-            SelectCoverOption(0, false);
+            SetCoverPage(false);
+            UpdateCoverVisuals(1f);
         }
 
         private void UpdateCover(float deltaTime)
         {
-            if (_coverGroup == null)
-            {
-                return;
-            }
-
-            if (_coverTransitioning)
-            {
-                _coverTransitionTimer -= deltaTime;
-                var progress = Mathf.Clamp01(1f - _coverTransitionTimer / 0.72f);
-                _coverGroup.alpha = 1f - Mathf.SmoothStep(0f, 1f, progress);
-                if (_coverTransitionTimer <= 0f)
-                {
-                    _coverTransitioning = false;
-                    SetCoverVisible(false);
-                    EnterScanning();
-                }
-                return;
-            }
-
-            var elapsed = Time.unscaledTime;
-            if (_coverFocusBar != null)
-            {
-                var pulse = 0.82f + Mathf.Sin(elapsed * 4.6f) * 0.12f;
-                _coverFocusBar.localScale = Vector3.one * (1f + (pulse - 0.82f) * 0.12f);
-            }
-
-            // Ray/trigger is the primary spatial action. Desktop mouse remains a fallback only.
+            if (_coverGroup == null) return;
+            UpdateCoverVisuals(deltaTime);
+            if (AdvanceCoverAction(deltaTime)) return;
             UpdateWorldMenuRay();
-            if (_coverTransitioning)
-            {
-                return;
-            }
-
-            if (Mouse.current != null && _hudRoot != null && _hudRoot.GetComponent<Canvas>().renderMode != RenderMode.WorldSpace)
-            {
-                var pointerPosition = Mouse.current.position.ReadValue();
-                if (RectTransformUtility.RectangleContainsScreenPoint(_coverStartHitArea, pointerPosition, _camera))
-                {
-                    SelectCoverOption(0, false);
-                }
-                else if (RectTransformUtility.RectangleContainsScreenPoint(_coverExitHitArea, pointerPosition, _camera))
-                {
-                    SelectCoverOption(1, false);
-                }
-
-                if (Mouse.current.leftButton.wasPressedThisFrame)
-                {
-                    if (RectTransformUtility.RectangleContainsScreenPoint(_coverStartHitArea, pointerPosition, _camera) ||
-                        RectTransformUtility.RectangleContainsScreenPoint(_coverExitHitArea, pointerPosition, _camera))
-                    {
-                        ActivateCoverSelection();
-                    }
-                    return;
-                }
-            }
-
+            if (_coverPendingAction >= 0) return;
             var keyboard = Keyboard.current;
-            if (keyboard != null)
+            if (keyboard == null) return;
+            if (_coverGuideVisible && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
-                {
-                    SelectCoverOption(_coverSelection + 1, true);
-                }
-                else if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
-                {
-                    SelectCoverOption(_coverSelection - 1, true);
-                }
-                else if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
-                {
-                    ActivateCoverSelection();
-                }
+                SelectCoverOption(3, false);
+                ActivateCoverSelection();
             }
-
-            if (WasXrConfirmPressed())
+            else if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame ||
+                     keyboard.sKey.wasPressedThisFrame || keyboard.tabKey.wasPressedThisFrame)
             {
+                MoveCoverSelection(keyboard.shiftKey.isPressed ? -1 : 1);
+            }
+            else if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                MoveCoverSelection(-1);
+            }
+            else if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
+            {
+                _coverInputHand = -1;
                 ActivateCoverSelection();
             }
         }
 
+        private void MoveCoverSelection(int direction)
+        {
+            var order = _coverGuideVisible ? new[] { 3, 4 } : new[] { 0, 2, 1 };
+            var current = System.Array.IndexOf(order, _coverSelection);
+            _coverHovered = -1;
+            _coverInputHand = -1;
+            SelectCoverOption(order[(current + direction + order.Length) % order.Length], true);
+        }
+
+        private bool AdvanceCoverAction(float deltaTime)
+        {
+            if (_coverPendingAction >= 0)
+            {
+                _coverActionDelay -= deltaTime;
+                if (_coverActionDelay > 0f) return true;
+                var action = _coverPendingAction;
+                _coverPendingAction = -1;
+                if (action == 2 || action == 3)
+                {
+                    SetCoverPage(action == 2);
+                    return true;
+                }
+                _coverExitRequested = action == 1;
+                _coverStatusText.text = _coverExitRequested ? "EXIT REQUEST ACKNOWLEDGED" : "CONNECTING TO YOUR ROOM";
+                _coverPromptText.text = _coverExitRequested ? "ENDING LOCAL SESSION" : "YOUR OPENING SURVEY WILL BEGIN SHORTLY";
+                _coverTransitioning = true;
+                _coverPresentationStableTime = 0f;
+                _coverTransitionTimer = _coverExitRequested ? 0.35f : 0.38f;
+                Debug.Log(_coverExitRequested ? "COSMIC_MENU_EXIT_REQUEST" : "COSMIC_MENU_START_REQUEST");
+                return true;
+            }
+            if (!_coverTransitioning) return false;
+            if (!_coverExitRequested && !_qaMode && Application.platform == RuntimePlatform.Android)
+            {
+                if (!CanPresentOpening() || deltaTime > OpeningMaximumFrameGap)
+                {
+                    _coverPresentationStableTime = 0f;
+                    _coverTransitionTimer = 0.38f;
+                    _coverGroup.alpha = 1f;
+                    return true;
+                }
+                _coverPresentationStableTime += Mathf.Min(deltaTime, OpeningMaximumStep);
+                if (_coverPresentationStableTime < OpeningSettleDuration) return true;
+                // Reveal the room behind the fading cover, instead of fading to opaque black.
+                var clear = _camera.backgroundColor;
+                clear.a = 0f;
+                _camera.backgroundColor = clear;
+            }
+            _coverTransitionTimer -= deltaTime;
+            var duration = _coverExitRequested ? 0.35f : 0.38f;
+            var progress = Mathf.Clamp01(1f - _coverTransitionTimer / duration);
+            _coverGroup.alpha = 1f - Mathf.SmoothStep(0f, 1f, progress);
+            if (_coverTransitionTimer <= 0f)
+            {
+                if (_coverExitRequested) QuitApplication();
+                else
+                {
+                    _coverTransitioning = false;
+                    SetCoverVisible(false);
+                    EnterScanning(roomPrepared: true);
+                }
+            }
+            return true;
+        }
+
+        private bool IsCoverOptionAvailable(int selection)
+        {
+            return selection >= 0 && selection < _menuControls.Length &&
+                   _menuControls[selection] != null && _menuControls[selection].Rect != null &&
+                   _menuControls[selection].Rect.gameObject.activeInHierarchy;
+        }
+
         private void ActivateCoverSelection()
         {
-            if (_coverTransitioning)
+            if (_coverTransitioning || _coverPendingAction >= 0 || !IsCoverOptionAvailable(_coverSelection)) return;
+            _menuControls[_coverSelection].Press = 0.18f;
+            _coverPendingAction = _coverSelection;
+            _coverActionDelay = 0.16f;
+            if (_coverSelection == 0 || (_coverGuideVisible && _coverSelection == 4))
             {
-                return;
+                ResetDetectedCeilingToDesignPose();
+                GetComponent<PicoCeilingLocator>()?.PrepareGameplayTransition();
             }
-
-            if (_coverSelection == 1)
+            PlaySfx(positive, 0.45f, _coverSelection == 1 ? 0.8f : 1.1f);
+            if (_coverInputHand >= 0)
             {
-                _coverStatusText.text = "EXIT REQUEST ACKNOWLEDGED";
-                _coverPromptText.text = "ENDING LOCAL SESSION";
-                _coverTransitioning = true;
-                _coverTransitionTimer = 0.4f;
-                Invoke(nameof(QuitApplication), 0.25f);
-                return;
+                var node = _coverInputHand == 0 ? UnityEngine.XR.XRNode.LeftHand : UnityEngine.XR.XRNode.RightHand;
+                var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
+                if (device.isValid) device.SendHapticImpulse(0, 0.30f, 0.045f);
             }
-
-            _coverStatusText.text = "ANOMALY LINK ESTABLISHED";
-            _coverPromptText.text = "STARTING LOCAL SPACE SURVEY";
-            _coverTransitioning = true;
-            _coverTransitionTimer = 0.72f;
-            PlaySfx(positive, 0.55f, 0.95f);
+            Debug.Log($"COSMIC_MENU_PRESS option={_coverSelection} hand={_coverInputHand}");
         }
 
         private void QuitApplication()
         {
+            Debug.Log("COSMIC_MENU_EXIT_COMPLETE");
             Application.Quit();
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }
 
-        private bool WasXrConfirmPressed()
-        {
-            var anyTriggerHeld = false;
-            foreach (var node in new[] { UnityEngine.XR.XRNode.LeftHand, UnityEngine.XR.XRNode.RightHand })
-            {
-                var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
-                if (device.isValid && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out var held) && held)
-                {
-                    anyTriggerHeld = true;
-                    break;
-                }
-            }
-
-            // Do not let a trigger state left behind by the emulator skip the title.
-            // A player must release, then make a new trigger press to enter the game.
-            if (!anyTriggerHeld)
-            {
-                _xrTriggerWasHeld = false;
-                _xrTriggerArmed = true;
-                return false;
-            }
-
-            var pressedThisFrame = _xrTriggerArmed && !_xrTriggerWasHeld;
-            _xrTriggerWasHeld = anyTriggerHeld;
-            return pressedThisFrame && _xrStartCooldown <= 0f;
-        }
-
         private void SelectCoverOption(int selection, bool audible)
         {
-            _coverSelection = Mathf.Clamp(selection, 0, 1);
-            if (_coverOptionLabels == null)
+            if (!IsCoverOptionAvailable(selection)) return;
+            var changed = _coverSelection != selection;
+            _coverSelection = selection;
+            if (_coverStatusText != null && !_coverTransitioning && _coverPendingAction < 0)
             {
+                _coverStatusText.text = selection switch
+                {
+                    0 => "ANOMALY PROTOCOL READY",
+                    1 => "EXIT TO DESKTOP",
+                    2 => "FOUR SIGNALS. TWO BLADES. ONE PROTOCOL.",
+                    3 => "RETURN TO MAIN MENU",
+                    _ => "READY TO CONTAIN THE ANOMALY"
+                };
+#if UNITY_ANDROID && !UNITY_EDITOR
+                if (selection == 1) _coverStatusText.text = "EXIT TO PICO HOME";
+#endif
+            }
+            if (changed && audible) PlaySfx(positive, 0.16f, 1.35f);
+        }
+
+        private void SetCoverPage(bool guide)
+        {
+            _coverGuideVisible = guide;
+            _coverHomePage.gameObject.SetActive(!guide);
+            _coverGuidePage.gameObject.SetActive(guide);
+            _coverStatusText.gameObject.SetActive(!guide);
+            _coverHovered = -1;
+            _coverInputHand = -1;
+            SelectCoverOption(guide ? 3 : 0, false);
+            _coverPromptText.text = guide ? "POINT + TRIGGER TO SELECT   /   ESC TO RETURN" : "POINT + TRIGGER   /   MOUSE CLICK   /   ARROWS + ENTER";
+            Debug.Log(guide ? "COSMIC_MENU_GUIDE_OPEN" : "COSMIC_MENU_HOME_OPEN");
+        }
+
+        private void UpdateCoverVisuals(float deltaTime)
+        {
+            var blend = 1f - Mathf.Exp(-20f * deltaTime);
+            for (var i = 0; i < _menuControls.Length; i++)
+            {
+                var button = _menuControls[i];
+                if (button == null || button.Rect == null) continue;
+                var pressed = button.Press > 0f;
+                button.Press = Mathf.Max(0f, button.Press - deltaTime);
+                var selected = _coverSelection == i;
+                var hovered = _coverHovered == i;
+                var fill = selected ? MenuAccent : MenuInk;
+                if (hovered) fill = Color.Lerp(MenuAccent, Color.white, 0.18f);
+                if (pressed) fill = new Color(1f, 0.83f, 0.53f, 1f);
+                button.Fill.color = Color.Lerp(button.Fill.color, fill, blend);
+                // Match text to the rendered fill, including the press-to-idle fade.
+                // A selection change can happen before a bright press color has faded.
+                var drawnFill = button.Fill.color;
+                var luminance = 0.2126f * Mathf.GammaToLinearSpace(drawnFill.r) +
+                                0.7152f * Mathf.GammaToLinearSpace(drawnFill.g) +
+                                0.0722f * Mathf.GammaToLinearSpace(drawnFill.b);
+                button.Label.color = luminance > 0.16f ? MenuInk : MenuPaper;
+                button.Outline.effectColor = hovered ? Color.white : selected ? MenuAccent : new Color(0.21f, 0.57f, 0.47f, 1f);
+                button.Marker.color = selected ? MenuInk : new Color(0.31f, 0.79f, 0.64f, 0f);
+                var scale = pressed ? 0.94f : hovered ? 1.055f : selected ? 1.015f : 1f;
+                button.Rect.localScale = Vector3.Lerp(button.Rect.localScale, Vector3.one * scale, blend);
+            }
+        }
+
+        private void UpdateWorldMenuRay()
+        {
+            if (_camera == null || _coverGroup == null || _coverGroup.alpha < 0.9f)
+            {
+                HideCoverControllerPointers();
                 return;
             }
+            var mouse = Mouse.current;
+            var mouseActive = mouse != null && (mouse.leftButton.isPressed || mouse.rightButton.isPressed || mouse.delta.ReadValue().sqrMagnitude > 0.01f);
+            if (mouseActive)
+            {
+                HideCoverControllerPointers();
+                _coverInputHand = -1;
+                UpdateCoverOptionFromRay(_camera.ScreenPointToRay(mouse.position.ReadValue()), mouse.leftButton.wasPressedThisFrame);
+                return;
+            }
+            var nodes = new[] { UnityEngine.XR.XRNode.LeftHand, UnityEngine.XR.XRNode.RightHand };
+            var tracked = 0;
+            var hoverOption = -1;
+            var hoverHand = -1;
+            for (var i = 0; i < 2; i++)
+            {
+                var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(nodes[i]);
+                if (!device.isValid || !device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out var position) ||
+                    (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.isTracked, out var isTracked) && !isTracked))
+                {
+                    HideCoverControllerPointer(i);
+                    continue;
+                }
+                tracked++;
+                device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out var rotation);
+                device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out var held);
+                var ray = new Ray(_rigTransform.TransformPoint(position), _rigTransform.rotation * rotation * Vector3.forward);
+                var hit = Physics.Raycast(ray, out var info, 8f, ~0, QueryTriggerInteraction.Collide);
+                var option = hit ? info.collider.GetComponent<CosmicWorldMenuOption>() : null;
+                var available = option != null && IsCoverOptionAvailable(option.Selection);
+                UpdateCoverControllerPointer(i, ray, hit ? info.distance : 8f, available, held);
+                var pressed = ConsumeCoverPointerPress(i, held);
+                if (!available) continue;
+                // A click owns the frame; otherwise keep the existing hovered hand to avoid flicker.
+                if (pressed)
+                {
+                    _coverInputHand = i;
+                    SetCoverHover(option.Selection);
+                    ActivateCoverSelection();
+                    return;
+                }
+                if (hoverOption < 0 || _coverInputHand == i)
+                {
+                    hoverOption = option.Selection;
+                    hoverHand = i;
+                }
+            }
+            if (tracked == 0)
+            {
+                // Only a fresh mouse gesture may take focus from keyboard navigation.
+                if (_coverInputHand >= 0) SetCoverHover(-1);
+                _coverInputHand = -1;
+            }
+            else
+            {
+                _coverInputHand = hoverHand;
+                SetCoverHover(hoverOption);
+            }
+        }
 
-            for (var index = 0; index < _coverOptionLabels.Length; index++)
-            {
-                var selected = index == _coverSelection;
-                _coverOptionLabels[index].color = selected ? CosmicPalette.Cyan : new Color(CosmicPalette.Silver.r, CosmicPalette.Silver.g, CosmicPalette.Silver.b, 0.78f);
-                _coverOptionLabels[index].fontStyle = selected ? FontStyle.Bold : FontStyle.Normal;
-            }
+        private void SetCoverHover(int selection)
+        {
+            if (selection == _coverHovered) return;
+            _coverHovered = selection;
+            if (selection >= 0) SelectCoverOption(selection, true);
+        }
 
-            if (_coverFocusBar != null)
-            {
-                _coverFocusBar.anchoredPosition = new Vector2(0f, _coverSelection == 0 ? -106f : -176f);
-            }
-            if (_coverStatusText != null && !_coverTransitioning)
-            {
-                _coverStatusText.text = _coverSelection == 0 ? "ANOMALY PROTOCOL READY" : "EXIT TO DESKTOP";
-            }
-            if (audible)
-            {
-                PlaySfx(positive, 0.18f, _coverSelection == 0 ? 1.05f : 0.9f);
-            }
+        private void UpdateCoverOptionFromRay(Ray ray, bool pressed)
+        {
+            var hit = Physics.Raycast(ray, out var info, 8f, ~0, QueryTriggerInteraction.Collide);
+            var option = hit ? info.collider.GetComponent<CosmicWorldMenuOption>() : null;
+            SetCoverHover(option != null && IsCoverOptionAvailable(option.Selection) ? option.Selection : -1);
+            if (pressed && _coverHovered >= 0) ActivateCoverSelection();
         }
 
         private void SetCoverVisible(bool visible)
         {
-            if (_coverGroup == null)
-            {
-                return;
-            }
+            if (_coverGroup == null) return;
             _coverRoot.gameObject.SetActive(visible);
             _coverGroup.alpha = visible ? 1f : 0f;
             _coverGroup.blocksRaycasts = visible;
             _coverGroup.interactable = visible;
+            if (!visible) HideCoverControllerPointers();
         }
 
         private void SetBladesVisible(bool visible)
@@ -288,172 +371,202 @@ namespace CosmicSlice
 
         private void BuildCover(RectTransform parent)
         {
-            var coverObject = new GameObject("Stellar Cleave Cover");
-            _coverRoot = coverObject.AddComponent<RectTransform>();
-            _coverRoot.SetParent(parent, false);
-            _coverRoot.anchorMin = Vector2.zero;
-            _coverRoot.anchorMax = Vector2.one;
-            _coverRoot.offsetMin = Vector2.zero;
-            _coverRoot.offsetMax = Vector2.zero;
-            _coverGroup = coverObject.AddComponent<CanvasGroup>();
-            _coverGroup.alpha = 1f;
-            _coverGroup.interactable = true;
-            _coverGroup.blocksRaycasts = true;
-
-            // An opaque physical title surface: the launch phase cannot leak any gameplay stage
-            // through a translucent cover, even if a future scene adds a distant renderer.
-            var veil = CreateImage(_coverRoot, "Cover Opaque Launch Surface", Vector2.zero, Vector2.zero,
-                new Color(0.002f, 0.008f, 0.024f, 1f));
-            veil.rectTransform.anchorMin = Vector2.zero;
-            veil.rectTransform.anchorMax = Vector2.one;
-            veil.rectTransform.offsetMin = Vector2.zero;
-            veil.rectTransform.offsetMax = Vector2.zero;
-
-            BuildCoverCornerFrame(_coverRoot);
-            BuildCoverTitle(_coverRoot);
-            BuildCoverControllerSignals(_coverRoot);
-
-            _coverStartHitArea = BuildCoverOption(_coverRoot, "START GAME", 0, -106f);
-            _coverExitHitArea = BuildCoverOption(_coverRoot, "EXIT", 1, -176f);
-            _coverFocusBar = BuildCoverFocusFrame(_coverRoot);
-
-            _coverStatusText = CreateText(_coverRoot, "Cover Status", new Vector2(0f, -315f), new Vector2(550f, 21f), 12, TextAnchor.MiddleCenter, new Color(CosmicPalette.Silver.r, CosmicPalette.Silver.g, CosmicPalette.Silver.b, 0.78f));
-            _coverStatusText.fontStyle = FontStyle.Normal;
-            _coverStatusText.text = "ANOMALY PROTOCOL READY";
-            _coverPromptText = CreateText(_coverRoot, "Cover Prompt", new Vector2(0f, -344f), new Vector2(600f, 20f), 11, TextAnchor.MiddleCenter, CosmicPalette.Cyan);
-            _coverPromptText.fontStyle = FontStyle.Normal;
-            _coverPromptText.text = "TRIGGER / SPACE TO DEPLOY";
-            _coverOptionLabels = new[]
-            {
-                _coverStartHitArea.GetComponentInChildren<Text>(),
-                _coverExitHitArea.GetComponentInChildren<Text>()
-            };
+            _coverRoot = NewMenuRect(parent, "Stellar Cleave Cover", Vector2.zero, new Vector2(1760f, 990f));
+            _coverGroup = _coverRoot.gameObject.AddComponent<CanvasGroup>();
+            _coverHomePage = NewMenuRect(_coverRoot, "Home Page", Vector2.zero, _coverRoot.sizeDelta);
+            _coverGuidePage = NewMenuRect(_coverRoot, "How To Play Page", Vector2.zero, _coverRoot.sizeDelta);
+            _coverArtwork = BuildMenuArtwork(_coverHomePage, "Nano Banana Stellar Cleave", "CosmicSliceMenu/Cover");
+            _guideArtwork = BuildMenuArtwork(_coverGuidePage, "Nano Banana Field Guide", "CosmicSliceMenu/Guide");
+            _guideArtwork.uvRect = new Rect(0.067f, 0.13f, 0.365f, 0.74f);
+            _guideArtwork.rectTransform.anchoredPosition = new Vector2(-501f, -20f);
+            _guideArtwork.rectTransform.sizeDelta = new Vector2(438f, 500f);
+            _coverStartHitArea = BuildMenuControl(_coverHomePage, "START GAME", 0, new Vector2(-360f, -300f), 300f);
+            BuildMenuControl(_coverHomePage, "HOW TO PLAY", 2, new Vector2(0f, -300f), 300f);
+            _coverExitHitArea = BuildMenuControl(_coverHomePage, "EXIT", 1, new Vector2(360f, -300f), 300f);
+            BuildGuideContents(_coverGuidePage);
+            BuildMenuControl(_coverGuidePage, "BACK", 3, new Vector2(-501f, -355f), 250f);
+            BuildMenuControl(_coverGuidePage, "START GAME", 4, new Vector2(495f, -355f), 340f);
+            _coverStatusText = MenuText(_coverRoot, "Cover Status", "ANOMALY PROTOCOL READY", new Vector2(0f, -412f), new Vector2(1400f, 32f), 22, MenuPaper, TextAnchor.MiddleCenter);
+            _coverPromptText = MenuText(_coverRoot, "Cover Prompt", "", new Vector2(0f, -455f), new Vector2(1400f, 28f), 19, new Color(0.55f, 0.76f, 0.68f), TextAnchor.MiddleCenter);
+            BuildCoverControllerPointers();
             _coverRoot.SetAsLastSibling();
         }
 
-        private RectTransform BuildCoverOption(RectTransform parent, string label, int index, float y)
+        private RawImage BuildMenuArtwork(RectTransform parent, string name, string resource)
         {
-            var optionObject = new GameObject("Cover Option " + label);
-            var rect = optionObject.AddComponent<RectTransform>();
+            var surface = CreateImage(parent, "Cover Opaque Launch Surface", Vector2.zero, parent.sizeDelta, MenuInk);
+            var image = NewMenuRect(parent, name, Vector2.zero, parent.sizeDelta).gameObject.AddComponent<RawImage>();
+            image.texture = Resources.Load<Texture2D>(resource);
+            image.raycastTarget = false;
+            if (coverFeatherShader != null)
+            {
+                var feather = new Material(coverFeatherShader) { name = "Menu Feather Into Black" };
+                feather.SetColor("_Tint", Color.white);
+                feather.SetColor("_EdgeColor", Color.black);
+                feather.SetFloat("_Feather", 0.16f);
+                surface.material = feather;
+                if (resource.EndsWith("/Cover")) image.material = feather;
+            }
+            if (image.texture == null) Debug.LogError("COSMIC_MENU_MISSING_ART " + resource);
+            return image;
+        }
+
+        private static RectTransform NewMenuRect(RectTransform parent, string name, Vector2 position, Vector2 size)
+        {
+            var rect = new GameObject(name).AddComponent<RectTransform>();
             rect.SetParent(parent, false);
-            rect.anchoredPosition = new Vector2(0f, y);
-            rect.sizeDelta = new Vector2(index == 0 ? 238f : 188f, 44f);
-            var backing = optionObject.AddComponent<CosmicPanelGraphic>();
-            backing.CornerCut = 9f;
-            backing.color = new Color(0.007f, 0.02f, 0.055f, index == 0 ? 0.7f : 0.5f);
-            backing.raycastTarget = false;
-            var interaction = optionObject.AddComponent<CosmicWorldMenuOption>();
-            interaction.Configure(index);
-            var hitbox = optionObject.AddComponent<BoxCollider>();
-            hitbox.size = new Vector3(rect.sizeDelta.x, rect.sizeDelta.y, 84f);
-            hitbox.center = new Vector3(0f, 0f, -42f);
-            var outline = optionObject.AddComponent<Outline>();
-            outline.effectColor = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, index == 0 ? 0.52f : 0.2f);
-            outline.effectDistance = new Vector2(1.2f, -1.2f);
-            var labelText = CreateText(rect, "Option Label", Vector2.zero, new Vector2(rect.sizeDelta.x - 22f, 34f), index == 0 ? 19 : 16, TextAnchor.MiddleCenter, CosmicPalette.Silver);
-            labelText.fontStyle = FontStyle.Normal;
-            labelText.text = label;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
             return rect;
         }
 
-        private void BuildCoverTitle(RectTransform parent)
+        private Text MenuText(RectTransform parent, string name, string copy, Vector2 position, Vector2 size, int fontSize, Color color, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
-            var glow = CreateText(parent, "Stellar Cleave Title Glow", new Vector2(0f, 96f), new Vector2(980f, 86f), 61, TextAnchor.MiddleCenter, new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.16f));
-            glow.text = "STELLAR CLEAVE";
-            glow.fontStyle = FontStyle.Bold;
-            var title = CreateText(parent, "Stellar Cleave Title", new Vector2(0f, 100f), new Vector2(980f, 86f), 61, TextAnchor.MiddleCenter, new Color(0.9f, 0.96f, 1f, 1f));
-            title.text = "STELLAR CLEAVE";
-            title.fontStyle = FontStyle.Bold;
-            var subtitle = CreateText(parent, "Anomaly Protocol Subtitle", new Vector2(0f, 46f), new Vector2(560f, 22f), 15, TextAnchor.MiddleCenter, new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.82f));
-            subtitle.text = "A N O M A L Y   P R O T O C O L";
-            subtitle.fontStyle = FontStyle.Normal;
-            CreateImage(parent, "Title Cyan Rule", new Vector2(-175f, 24f), new Vector2(190f, 2f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.62f));
-            CreateImage(parent, "Title Amber Rule", new Vector2(175f, 24f), new Vector2(190f, 2f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.52f));
+            var text = CreateText(parent, name, position, size, fontSize, alignment, color);
+            text.text = copy;
+            text.fontStyle = FontStyle.Normal;
+            text.lineSpacing = 1.15f;
+            return text;
         }
 
-        private void BuildCoverControllerSignals(RectTransform parent)
+        private RectTransform BuildMenuControl(RectTransform parent, string label, int index, Vector2 position, float width)
         {
-            BuildCoverControllerSignal(parent, "Left Cyan Controller Signal", new Vector2(-386f, -158f), CosmicPalette.Cyan, -1f);
-            BuildCoverControllerSignal(parent, "Right Amber Controller Signal", new Vector2(386f, -158f), CosmicPalette.Amber, 1f);
+            var rect = NewMenuRect(parent, "Cover Option " + label, position, new Vector2(width, 76f));
+            var fill = rect.gameObject.AddComponent<CosmicPanelGraphic>();
+            fill.CornerCut = 15f;
+            fill.color = MenuInk;
+            fill.raycastTarget = false;
+            var outline = rect.gameObject.AddComponent<Outline>();
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            var collider = rect.gameObject.AddComponent<BoxCollider>();
+            collider.size = new Vector3(width, 76f, 40f);
+            collider.center = new Vector3(0f, 0f, -20f);
+            rect.gameObject.AddComponent<CosmicWorldMenuOption>().Configure(index);
+            var text = MenuText(rect, "Option Label", label, new Vector2(6f, 0f), new Vector2(width - 48f, 50f), 30, MenuPaper, TextAnchor.MiddleCenter);
+            text.GetComponent<Shadow>().enabled = false;
+            var marker = CreateImage(rect, "Focus Mark", new Vector2(-width * 0.5f + 20f, 0f), new Vector2(5f, 24f), Color.clear);
+            _menuControls[index] = new MenuControl { Rect = rect, Fill = fill, Outline = outline, Label = text, Marker = marker };
+            return rect;
         }
 
-        private static void BuildCoverControllerSignal(RectTransform parent, string name, Vector2 position, Color color, float direction)
+        private void BuildGuideContents(RectTransform parent)
         {
-            var root = new GameObject(name).AddComponent<RectTransform>();
-            root.SetParent(parent, false);
-            root.anchoredPosition = position;
-            root.sizeDelta = new Vector2(160f, 126f);
-            root.localRotation = Quaternion.Euler(0f, 0f, direction * -11f);
+            MenuText(parent, "Field Guide Heading", "HOW TO PLAY", new Vector2(-405f, 355f), new Vector2(630f, 72f), 52, MenuPaper);
+            MenuText(parent, "Guide Goal", "75 SECONDS. 3 LIVES.", new Vector2(350f, 355f), new Vector2(630f, 52f), 32, MenuPaper, TextAnchor.MiddleRight);
+            CreateImage(parent, "Guide Header Rule", new Vector2(-20f, 278f), new Vector2(1400f, 1f), new Color(0.21f, 0.40f, 0.34f, 0.65f));
+            GuideRule(parent, "LEFT / CYAN", "Cut cyan signals\nwith your left blade.", new Vector2(-50f, 183f), CosmicPalette.Cyan);
+            GuideRule(parent, "RIGHT / AMBER", "Cut amber signals\nwith your right blade.", new Vector2(335f, 183f), CosmicPalette.Amber);
+            GuideRule(parent, "DUAL / VIOLET", "Use one hand, then the\nother within 0.9s.", new Vector2(-50f, -8f), new Color(0.78f, 0.38f, 1f));
+            GuideRule(parent, "AVOID / RED", "Let red hazards pass.\nNever cut them.", new Vector2(335f, -8f), CosmicPalette.Red);
+            MenuText(parent, "Guide Life Rule", "Wrong hand or missed non-red signal: lose 1 life.", new Vector2(307.5f, -182f), new Vector2(715f, 36f), 25, MenuPaper);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            const string input = "Swing your blades, or aim + pull the trigger.";
+#else
+            const string input = "Left click: cyan blade   /   Right click: amber blade";
+#endif
+            MenuText(parent, "Guide Input", input, new Vector2(307.5f, -232f), new Vector2(715f, 36f), 24, new Color(0.60f, 0.80f, 0.72f));
+        }
 
-            var aura = new GameObject("Energy Aura").AddComponent<RectTransform>();
-            aura.SetParent(root, false);
-            aura.anchoredPosition = Vector2.zero;
-            aura.sizeDelta = new Vector2(102f, 102f);
-            var auraGraphic = aura.gameObject.AddComponent<CosmicPanelGraphic>();
-            auraGraphic.CornerCut = 46f;
-            auraGraphic.color = new Color(color.r, color.g, color.b, 0.14f);
-            auraGraphic.raycastTarget = false;
+        private void GuideRule(RectTransform parent, string title, string copy, Vector2 position, Color color)
+        {
+            MenuText(parent, "Guide " + title, title, position + new Vector2(165f, 0f), new Vector2(330f, 38f), 28, color);
+            MenuText(parent, "Guide Detail " + title, copy, position + new Vector2(165f, -67f), new Vector2(330f, 92f), 27, MenuPaper, TextAnchor.UpperLeft);
+        }
 
-            var handle = new GameObject("Controller Hilt").AddComponent<RectTransform>();
-            handle.SetParent(root, false);
-            handle.anchoredPosition = new Vector2(0f, -7f);
-            handle.sizeDelta = new Vector2(37f, 68f);
-            handle.localRotation = Quaternion.Euler(0f, 0f, direction * -18f);
-            var hiltGraphic = handle.gameObject.AddComponent<CosmicPanelGraphic>();
-            hiltGraphic.CornerCut = 12f;
-            hiltGraphic.color = new Color(0.035f, 0.065f, 0.11f, 0.94f);
-            hiltGraphic.raycastTarget = false;
-
-            var core = new GameObject("Energy Core").AddComponent<RectTransform>();
-            core.SetParent(handle, false);
-            core.anchoredPosition = new Vector2(0f, 19f);
-            core.sizeDelta = new Vector2(15f, 28f);
-            var coreGraphic = core.gameObject.AddComponent<CosmicPanelGraphic>();
-            coreGraphic.CornerCut = 7f;
-            coreGraphic.color = new Color(color.r, color.g, color.b, 0.95f);
-            coreGraphic.raycastTarget = false;
-
-            var ring = new GameObject("Controller Ring").AddComponent<RectTransform>();
-            ring.SetParent(root, false);
-            ring.anchoredPosition = new Vector2(direction * 15f, 18f);
-            ring.sizeDelta = new Vector2(84f, 8f);
-            ring.localRotation = Quaternion.Euler(0f, 0f, direction * 24f);
-            var ringGraphic = ring.gameObject.AddComponent<CosmicPanelGraphic>();
-            ringGraphic.CornerCut = 4f;
-            ringGraphic.color = new Color(color.r, color.g, color.b, 0.56f);
-            ringGraphic.raycastTarget = false;
-
-            for (var index = 0; index < 3; index++)
+        private void BuildCoverControllerPointers()
+        {
+            for (var index = 0; index < 2; index++)
             {
-                var trace = CreateImage(root, "Signal Trace " + index, new Vector2(direction * (38f + index * 18f), 18f + index * 16f), new Vector2(39f - index * 5f, 2f), new Color(color.r, color.g, color.b, 0.35f - index * 0.07f));
-                trace.rectTransform.localRotation = Quaternion.Euler(0f, 0f, direction * 28f);
+                var side = index == 0 ? "Left" : "Right";
+                var sideColor = index == 0 ? CosmicPalette.Cyan : CosmicPalette.Amber;
+                var sourceMaterial = index == 0 ? _cyanGlow : _amberGlow;
+                var material = new Material(sourceMaterial) { name = side + " Cover Pointer Material" };
+                _coverPointerMaterials[index] = material;
+
+                var rayObject = new GameObject(side + " Cover World Interaction Ray");
+                rayObject.transform.SetParent(_titleRoot, false);
+                var line = rayObject.AddComponent<LineRenderer>();
+                line.useWorldSpace = true;
+                line.positionCount = 2;
+                line.widthCurve = new AnimationCurve(new Keyframe(0f, 0.006f), new Keyframe(1f, 0.0018f));
+                line.numCapVertices = 4;
+                line.sharedMaterial = material;
+                line.startColor = new Color(sideColor.r, sideColor.g, sideColor.b, 0.82f);
+                line.endColor = new Color(sideColor.r, sideColor.g, sideColor.b, 0.22f);
+                line.enabled = false;
+                _coverControllerRays[index] = line;
+
+                var reticle = new GameObject(side + " Cover World Aim Reticle").transform;
+                reticle.SetParent(_titleRoot, false);
+                var point = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                point.name = "Aim Point";
+                point.transform.SetParent(reticle, false);
+                point.transform.localScale = Vector3.one * 0.028f;
+                Destroy(point.GetComponent<Collider>());
+                point.GetComponent<Renderer>().sharedMaterial = material;
+                var ring = CosmicSliceMeshFactory.CreateTorusObject("Aim Ring", 0.055f, 0.006f, material);
+                ring.transform.SetParent(reticle, false);
+                ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                reticle.gameObject.SetActive(false);
+                _coverControllerReticles[index] = reticle;
             }
         }
 
-        private RectTransform BuildCoverFocusFrame(RectTransform parent)
+        private void UpdateCoverControllerPointer(int index, Ray ray, float distance, bool overOption, bool held)
         {
-            var frame = new GameObject("Cover Selection Brackets").AddComponent<RectTransform>();
-            frame.SetParent(parent, false);
-            frame.anchoredPosition = new Vector2(0f, -106f);
-            frame.sizeDelta = new Vector2(320f, 52f);
-            CreateImage(frame, "Left Selection Bracket", new Vector2(-145f, 0f), new Vector2(22f, 2f), CosmicPalette.Cyan);
-            CreateImage(frame, "Right Selection Bracket", new Vector2(145f, 0f), new Vector2(22f, 2f), CosmicPalette.Cyan);
-            CreateImage(frame, "Left Selection Stem", new Vector2(-153f, 0f), new Vector2(2f, 20f), CosmicPalette.Cyan);
-            CreateImage(frame, "Right Selection Stem", new Vector2(153f, 0f), new Vector2(2f, 20f), CosmicPalette.Cyan);
-            return frame;
+            var line = _coverControllerRays[index];
+            var reticle = _coverControllerReticles[index];
+            if (line == null || reticle == null)
+            {
+                return;
+            }
+
+            var sideColor = index == 0 ? CosmicPalette.Cyan : CosmicPalette.Amber;
+            var color = overOption ? Color.white : sideColor;
+            line.enabled = true;
+            line.widthMultiplier = held ? 1.65f : 1f;
+            line.startColor = new Color(color.r, color.g, color.b, held ? 1f : 0.82f);
+            line.endColor = new Color(color.r, color.g, color.b, overOption ? 0.94f : 0.22f);
+            line.SetPosition(0, ray.origin);
+            line.SetPosition(1, ray.GetPoint(distance));
+
+            reticle.gameObject.SetActive(true);
+            reticle.position = ray.GetPoint(distance);
+            reticle.rotation = Quaternion.LookRotation(_camera.transform.forward, _camera.transform.up);
+            reticle.localScale = Vector3.one * (overOption ? (held ? 0.72f : 1.22f) : 0.68f);
+            var material = _coverPointerMaterials[index];
+            if (material != null && material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", color);
+            }
         }
 
-        private static void BuildCoverCornerFrame(RectTransform parent)
+        private bool ConsumeCoverPointerPress(int index, bool held)
         {
-            var color = new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.34f);
-            CreateImage(parent, "Cover Top Left Horizontal", new Vector2(-760f, 442f), new Vector2(54f, 2f), color);
-            CreateImage(parent, "Cover Top Right Horizontal", new Vector2(760f, 442f), new Vector2(54f, 2f), color);
-            CreateImage(parent, "Cover Bottom Left Horizontal", new Vector2(-760f, -442f), new Vector2(54f, 2f), color);
-            CreateImage(parent, "Cover Bottom Right Horizontal", new Vector2(760f, -442f), new Vector2(54f, 2f), color);
-            CreateImage(parent, "Cover Top Left Vertical", new Vector2(-787f, 416f), new Vector2(2f, 54f), color);
-            CreateImage(parent, "Cover Top Right Vertical", new Vector2(787f, 416f), new Vector2(2f, 54f), color);
-            CreateImage(parent, "Cover Bottom Left Vertical", new Vector2(-787f, -416f), new Vector2(2f, 54f), color);
-            CreateImage(parent, "Cover Bottom Right Vertical", new Vector2(787f, -416f), new Vector2(2f, 54f), color);
+            if (!held)
+            {
+                _coverPointerTriggerHeld[index] = false;
+                _coverPointerTriggerArmed[index] = true;
+                return false;
+            }
+
+            var pressed = _coverPointerTriggerArmed[index] && !_coverPointerTriggerHeld[index];
+            _coverPointerTriggerHeld[index] = true;
+            return pressed && _xrStartCooldown <= 0f;
+        }
+
+        private void HideCoverControllerPointer(int index)
+        {
+            if (_coverControllerRays[index] != null) _coverControllerRays[index].enabled = false;
+            if (_coverControllerReticles[index] != null) _coverControllerReticles[index].gameObject.SetActive(false);
+            _coverPointerTriggerHeld[index] = false;
+            _coverPointerTriggerArmed[index] = false;
+        }
+
+        private void HideCoverControllerPointers()
+        {
+            HideCoverControllerPointer(0);
+            HideCoverControllerPointer(1);
         }
 
     }

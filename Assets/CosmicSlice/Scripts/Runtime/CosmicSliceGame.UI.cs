@@ -3,357 +3,201 @@ using UnityEngine.UI;
 
 namespace CosmicSlice
 {
-    // THESIS: A portal over a deep-blue grid frames a centered choice; it refuses cockpit-like side panels.
-    // OWN-WORLD: Black-hole silhouette, blue-violet space, cyan/amber hand signals and silver native type.
-    // STORY: Confirm START GAME, survey the local space, then cut only the correctly signaled anomaly.
-    // FIRST VIEWPORT: Portal at the upper center, centered STELLAR CLEAVE title, paired controller signals and compact menu.
-    // FORM: Figma-authoritative title screen recreated with Unity native text and interactive selection brackets.
+    // THESIS: One quiet emerald console language connects launch, play and debrief.
+    // OWN-WORLD: Pine-black surfaces, slender coral corners, white type and sparse CRT grain.
+    // STORY: Locate a real ceiling, understand four signals, play, then read a clear result.
+    // FIRST VIEWPORT: Inset score/time, compact lives, an open play lane and a calm ready console.
+    // FORM: Extends the user's approved nebula cover; color marks rules, never entire HUD cards.
+    // FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
     public sealed partial class CosmicSliceGame
     {
         private Font _uiFont;
-        private RectTransform _hudFrameRoot;
-        private RectTransform _scorePanelRoot;
-        private RectTransform _timerPanelRoot;
-        private RectTransform _lifePanelRoot;
-        private RectTransform _ruleStripRoot;
+        private RectTransform _hudFrameRoot, _scorePanelRoot, _timerPanelRoot, _lifePanelRoot, _ruleStripRoot;
+        private RectTransform _statusPanelRoot, _eventPanelRoot;
+        private Text _ceilingStateText, _resultRankText, _resultScoreText, _resultDetailText;
+        private Texture2D _consoleNebula;
+        private static readonly Color ConsoleMuted = new(0.59f, 0.75f, 0.68f, 1f);
 
         private void BuildHud(Transform missionConsoleRoot, bool includeCover = true)
         {
             _uiFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var canvasObject = new GameObject("Orbital Containment Instrument");
-            var canvas = canvasObject.AddComponent<Canvas>();
-            // This is the physical mission console in the arena. It is never head-locked: the
-            // cover choices, tutorial, results and score all remain walk-up world-space objects.
+            var canvas = new GameObject("Stellar Cleave World Console").AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 24;
-            var canvasRect = canvas.GetComponent<RectTransform>();
-            canvasRect.sizeDelta = new Vector2(1760f, 990f);
-            if (missionConsoleRoot != null)
+            var rect = canvas.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(1760f, 990f);
+            rect.SetParent(missionConsoleRoot, false);
+            rect.localScale = Vector3.one * CosmicSliceDesign.MissionConsoleScale;
+            _hudRoot = rect;
+            if (includeCover) { rect.localScale *= 1.35f; BuildCover(rect); return; }
+            _consoleNebula = Resources.Load<Texture2D>("CosmicSliceMenu/Cover");
+            BuildHudFrame(rect);
+            _scorePanelRoot = CreateConsolePanel(rect, "Score Instrument", new Vector2(-560f, 337f), new Vector2(320f, 154f));
+            ConsoleText(_scorePanelRoot, "Score Label", "SCORE", new Vector2(0f, 47f), new Vector2(260f, 28f), 21, ConsoleMuted);
+            _scoreText = ConsoleText(_scorePanelRoot, "Score", "000000", new Vector2(0f, 0f), new Vector2(260f, 64f), 54, MenuPaper);
+            _comboText = ConsoleText(_scorePanelRoot, "Chain", "CHAIN 00", new Vector2(0f, -48f), new Vector2(260f, 28f), 22, MenuAccent);
+            _timerPanelRoot = CreateConsolePanel(rect, "Timer Instrument", new Vector2(560f, 337f), new Vector2(320f, 154f));
+            ConsoleText(_timerPanelRoot, "Timer Label", "TIME REMAINING", new Vector2(0f, 47f), new Vector2(260f, 28f), 21, ConsoleMuted, TextAnchor.MiddleRight);
+            _timerText = ConsoleText(_timerPanelRoot, "Time", "01:15", new Vector2(0f, 0f), new Vector2(260f, 64f), 54, MenuPaper, TextAnchor.MiddleRight);
+            ConsoleText(_timerPanelRoot, "Round Label", "ANOMALY PROTOCOL", new Vector2(0f, -48f), new Vector2(260f, 28f), 20, ConsoleMuted, TextAnchor.MiddleRight);
+            _lifePanelRoot = CreateConsolePanel(rect, "Life Link Instrument", new Vector2(-560f, 215f), new Vector2(320f, 64f));
+            _livesText = ConsoleText(_lifePanelRoot, "Lives Label", "LIVES  3 / 3", new Vector2(-40f, 0f), new Vector2(210f, 32f), 24, MenuPaper);
+            for (var i = 0; i < _lifePips.Length; i++)
             {
-                canvasRect.SetParent(missionConsoleRoot, false);
-                canvasRect.localPosition = Vector3.zero;
-                canvasRect.localRotation = Quaternion.identity;
-                canvasRect.localScale = Vector3.one * CosmicSliceDesign.MissionConsoleScale;
+                _lifePips[i] = CreateImage(_lifePanelRoot, "Life Node " + i, new Vector2(66f + i * 29f, 0f), new Vector2(9f, 20f), MenuAccent);
+                _lifePips[i].rectTransform.localRotation = Quaternion.Euler(0f, 0f, -24f);
             }
-            else
-            {
-                canvasRect.position = CosmicSliceDesign.GameplayMissionConsolePosition;
-                canvasRect.rotation = Quaternion.Euler(0f, 180f, 0f);
-                canvasRect.localScale = Vector3.one * CosmicSliceDesign.MissionConsoleScale;
-            }
-            _hudRoot = canvasRect;
-
-            // Title is a self-contained launch stage. It owns only the opaque cover and its
-            // physical Start / Exit targets; gameplay score, rules and result UI are created
-            // only after the title root has been destroyed.
-            if (includeCover)
-            {
-                BuildCover(canvasRect);
-                return;
-            }
-
-            BuildHudFrame(canvasRect);
-            var scorePanel = CreateInstrumentPanel(canvasRect, "Score Instrument", new Vector2(-680f, 382f), new Vector2(300f, 146f), CosmicPalette.Cyan, 0.88f);
-            _scorePanelRoot = scorePanel;
-            var scoreLabel = CreateText(scorePanel, "Score Label", new Vector2(-14f, 42f), new Vector2(244f, 24f), 15, TextAnchor.MiddleLeft, CosmicPalette.Silver);
-            scoreLabel.fontStyle = FontStyle.Normal;
-            scoreLabel.text = "CONTAINMENT SCORE";
-            _scoreText = CreateText(scorePanel, "Score", new Vector2(-14f, 0f), new Vector2(244f, 58f), 50, TextAnchor.MiddleLeft, Color.white);
-            _scoreText.text = "000000";
-            _comboText = CreateText(scorePanel, "Combo", new Vector2(-14f, -44f), new Vector2(244f, 26f), 17, TextAnchor.MiddleLeft, CosmicPalette.Cyan);
-            _comboText.text = "CHAIN 00";
-
-            var timerPanel = CreateInstrumentPanel(canvasRect, "Timer Instrument", new Vector2(680f, 382f), new Vector2(300f, 146f), CosmicPalette.Amber, 0.88f);
-            _timerPanelRoot = timerPanel;
-            var timerLabel = CreateText(timerPanel, "Timer Label", new Vector2(14f, 42f), new Vector2(244f, 24f), 15, TextAnchor.MiddleRight, CosmicPalette.Silver);
-            timerLabel.fontStyle = FontStyle.Normal;
-            timerLabel.text = "ANOMALY WINDOW";
-            _timerText = CreateText(timerPanel, "Timer", new Vector2(14f, 0f), new Vector2(244f, 62f), 52, TextAnchor.MiddleRight, Color.white);
-            _timerText.text = "01:15";
-            var timerNote = CreateText(timerPanel, "Timer Note", new Vector2(14f, -44f), new Vector2(244f, 26f), 15, TextAnchor.MiddleRight, CosmicPalette.Amber);
-            timerNote.fontStyle = FontStyle.Normal;
-            timerNote.text = "LIVE CONTAINMENT";
-
-            var lifePanel = CreateInstrumentPanel(canvasRect, "Life Link Instrument", new Vector2(0f, 414f), new Vector2(310f, 54f), CosmicPalette.Violet, 0.84f);
-            _lifePanelRoot = lifePanel;
-            _livesText = CreateText(lifePanel, "Lives Label", new Vector2(-48f, 0f), new Vector2(208f, 28f), 15, TextAnchor.MiddleLeft, CosmicPalette.Silver);
-            _livesText.text = "LIFE LINK  /  3 OF 3";
-            for (var index = 0; index < _lifePips.Length; index++)
-            {
-                var pip = CreateImage(lifePanel, "Life Node " + (index + 1), new Vector2(80f + index * 31f, 0f), new Vector2(16f, 16f), Color.white);
-                pip.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-                var outline = pip.gameObject.AddComponent<Outline>();
-                outline.effectColor = new Color(CosmicPalette.Violet.r, CosmicPalette.Violet.g, CosmicPalette.Violet.b, 0.72f);
-                outline.effectDistance = new Vector2(2f, -2f);
-                _lifePips[index] = pip;
-            }
-
-            _statusText = CreateText(canvasRect, "Status", new Vector2(0f, 292f), new Vector2(560f, 68f), 30, TextAnchor.MiddleCenter, Color.white);
-            _statusText.text = string.Empty;
-
-            BuildTutorial(canvasRect);
-            _eventText = CreateText(canvasRect, "Event", new Vector2(0f, -300f), new Vector2(760f, 42f), 21, TextAnchor.MiddleCenter, CosmicPalette.Cyan);
-            _eventText.text = string.Empty;
-
-            BuildRuleStrip(canvasRect);
-            BuildResultPanel(canvasRect);
-            _flashImage = CreateImage(canvasRect, "Impact Flash", Vector2.zero, canvasRect.sizeDelta, Color.clear);
+            _statusPanelRoot = CreateConsolePanel(rect, "Ceiling Status", new Vector2(0f, 202f), new Vector2(730f, 98f));
+            _statusText = ConsoleText(_statusPanelRoot, "Status", "", Vector2.zero, new Vector2(670f, 82f), 27, MenuPaper, TextAnchor.MiddleCenter);
+            BuildTutorial(rect);
+            _eventPanelRoot = CreateConsolePanel(rect, "Event Notice", new Vector2(0f, -334f), new Vector2(690f, 52f));
+            _eventText = ConsoleText(_eventPanelRoot, "Event", "", Vector2.zero, new Vector2(630f, 38f), 23, MenuPaper, TextAnchor.MiddleCenter);
+            BuildRuleStrip(rect);
+            BuildResultPanel(rect);
+            _flashImage = CreateImage(rect, "Impact Flash", Vector2.zero, rect.sizeDelta, Color.clear);
             _flashImage.raycastTarget = false;
-            _flashImage.rectTransform.anchorMin = Vector2.zero;
-            _flashImage.rectTransform.anchorMax = Vector2.one;
-            _flashImage.rectTransform.offsetMin = Vector2.zero;
-            _flashImage.rectTransform.offsetMax = Vector2.zero;
             _flashImage.transform.SetAsLastSibling();
         }
 
-        private void BuildHudFrame(RectTransform parent)
+        private Text ConsoleText(RectTransform parent, string name, string copy, Vector2 position, Vector2 size, int fontSize, Color color, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
-            _hudFrameRoot = new GameObject("Viewport Datum Frame").AddComponent<RectTransform>();
-            _hudFrameRoot.SetParent(parent, false);
-            _hudFrameRoot.anchorMin = Vector2.zero;
-            _hudFrameRoot.anchorMax = Vector2.one;
-            _hudFrameRoot.offsetMin = Vector2.zero;
-            _hudFrameRoot.offsetMax = Vector2.zero;
-            var brand = CreateText(_hudFrameRoot, "Brand Mark", new Vector2(-806f, 462f), new Vector2(176f, 18f), 11, TextAnchor.MiddleLeft, CosmicPalette.Silver);
-            brand.fontStyle = FontStyle.Normal;
-            brand.text = "STELLAR CLEAVE  /  ANOMALY 07";
-            var mode = CreateText(_hudFrameRoot, "Runtime Mode", new Vector2(806f, 462f), new Vector2(176f, 18f), 11, TextAnchor.MiddleRight, CosmicPalette.Silver);
-            mode.fontStyle = FontStyle.Normal;
-            mode.text = "SPATIAL CONTAINMENT";
-            var brandSignal = CreateImage(_hudFrameRoot, "Brand Signal", new Vector2(-842f, 462f), new Vector2(7f, 7f), CosmicPalette.Cyan);
-            var modeSignal = CreateImage(_hudFrameRoot, "Mode Signal", new Vector2(842f, 462f), new Vector2(7f, 7f), CosmicPalette.Amber);
-            CreateImage(_hudFrameRoot, "Top Left Datum", new Vector2(-528f, 462f), new Vector2(46f, 2f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.34f));
-            CreateImage(_hudFrameRoot, "Top Right Datum", new Vector2(528f, 462f), new Vector2(46f, 2f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.34f));
+            var text = CreateText(parent, name, position, size, fontSize, alignment, color);
+            text.fontStyle = FontStyle.Normal;
+            text.lineSpacing = 1.12f;
+            text.text = copy;
+            text.GetComponent<Shadow>().enabled = false;
+            return text;
         }
 
-        private void CreateHudArc(RectTransform parent, string name, Vector2 center, float radius, float startAngle, float endAngle, int segments, Color color, float alpha)
+        private RectTransform CreateConsolePanel(RectTransform parent, string name, Vector2 position, Vector2 size, bool nebula = false)
         {
-            for (var index = 0; index < segments; index++)
+            var rect = NewMenuRect(parent, name, position, size);
+            var body = rect.gameObject.AddComponent<CosmicPanelGraphic>();
+            body.CornerCut = 9f;
+            body.color = new Color(MenuInk.r, MenuInk.g, MenuInk.b, 0.97f);
+            body.raycastTarget = false;
+            if (nebula && _consoleNebula != null)
             {
-                var angle = Mathf.Lerp(startAngle, endAngle, index / (float)(segments - 1));
-                var radians = angle * Mathf.Deg2Rad;
-                var position = center + new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * radius;
-                var segment = CreateImage(parent, name + " " + index, position, new Vector2(index % 5 == 0 ? 24f : 14f, index % 5 == 0 ? 4f : 2f), new Color(color.r, color.g, color.b, alpha));
-                segment.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle + 90f);
+                var art = NewMenuRect(rect, "Quiet Nebula Grain", Vector2.zero, size - Vector2.one * 26f).gameObject.AddComponent<RawImage>();
+                art.texture = _consoleNebula;
+                // A title-free strip of the existing approved cover; no additional image asset.
+                art.uvRect = new Rect(0.035f, 0.20f, 0.07f, 0.58f);
+                art.color = new Color(0.55f, 0.72f, 0.62f, 0.16f);
+                art.raycastTarget = false;
             }
-        }
-
-        private RectTransform CreateInstrumentPanel(RectTransform parent, string name, Vector2 position, Vector2 size, Color accent, float fillAlpha)
-        {
-            var panelObject = new GameObject(name);
-            var rect = panelObject.AddComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            var shell = panelObject.AddComponent<CosmicPanelGraphic>();
-            shell.CornerCut = Mathf.Clamp(size.y * 0.16f, 10f, 24f);
-            shell.color = new Color(accent.r, accent.g, accent.b, 0.42f);
-            shell.raycastTarget = false;
-
-            var surfaceObject = new GameObject("Matte Instrument Surface");
-            var surfaceRect = surfaceObject.AddComponent<RectTransform>();
-            surfaceRect.SetParent(rect, false);
-            surfaceRect.anchorMin = Vector2.zero;
-            surfaceRect.anchorMax = Vector2.one;
-            surfaceRect.offsetMin = new Vector2(3f, 3f);
-            surfaceRect.offsetMax = new Vector2(-3f, -3f);
-            var surface = surfaceObject.AddComponent<CosmicPanelGraphic>();
-            surface.CornerCut = Mathf.Clamp(size.y * 0.16f - 2f, 8f, 22f);
-            surface.color = new Color(0.005f, 0.018f, 0.036f, fillAlpha);
-            surface.raycastTarget = false;
-
-            CreateImage(rect, "Panel Signal Bar", new Vector2(-size.x * 0.5f + 32f, size.y * 0.5f - 11f), new Vector2(42f, 5f), new Color(accent.r, accent.g, accent.b, 0.95f));
-            for (var index = 0; index < 3; index++)
+            var rim = new Color(MenuAccent.r, MenuAccent.g, MenuAccent.b, 0.7f);
+            foreach (var side in new[] { -1f, 1f })
             {
-                CreateImage(rect, "Panel Datum " + index, new Vector2(size.x * 0.5f - 18f - index * 12f, -size.y * 0.5f + 12f), new Vector2(index == 0 ? 7f : 4f, 4f), new Color(accent.r, accent.g, accent.b, 0.55f - index * 0.12f));
+                var x = side * (size.x * 0.5f - 10f);
+                var y = -side * (size.y * 0.5f - 10f);
+                CreateImage(rect, "Coral Corner Horizontal", new Vector2(x - side * 13f, y), new Vector2(26f, 1.5f), rim);
+                CreateImage(rect, "Coral Corner Vertical", new Vector2(x, y + side * 8f), new Vector2(1.5f, 16f), rim);
             }
             return rect;
         }
 
-        private void BuildTutorial(RectTransform parent)
+        private void BuildHudFrame(RectTransform parent)
         {
-            var tutorialObject = new GameObject("First Contact Tutorial");
-            var rect = tutorialObject.AddComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchoredPosition = new Vector2(0f, -42f);
-            rect.sizeDelta = new Vector2(760f, 218f);
-            var backing = tutorialObject.AddComponent<CosmicPanelGraphic>();
-            backing.CornerCut = 24f;
-            backing.color = new Color(0.004f, 0.015f, 0.032f, 0.72f);
-            backing.raycastTarget = false;
-            _tutorialGroup = tutorialObject.AddComponent<CanvasGroup>();
-            _tutorialGroup.alpha = 0f;
-
-            CreateImage(rect, "Tutorial Cyan Header", new Vector2(-184f, 104f), new Vector2(360f, 3f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.88f));
-            CreateImage(rect, "Tutorial Amber Header", new Vector2(184f, 104f), new Vector2(360f, 3f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.78f));
-            CreateImage(rect, "Left Instrument Rail", new Vector2(-364f, 1f), new Vector2(2f, 132f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.5f));
-            CreateImage(rect, "Right Instrument Rail", new Vector2(364f, 1f), new Vector2(2f, 132f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.44f));
-            CreateImage(rect, "Left Signal Divider", new Vector2(-124f, -7f), new Vector2(1f, 112f), new Color(0.38f, 0.64f, 0.82f, 0.2f));
-            CreateImage(rect, "Right Signal Divider", new Vector2(124f, -7f), new Vector2(1f, 112f), new Color(0.72f, 0.52f, 0.84f, 0.18f));
-
-            for (var index = 0; index < 5; index++)
-            {
-                var y = 50f - index * 25f;
-                CreateImage(rect, "Cyan Telemetry Tick " + index, new Vector2(-356f, y), new Vector2(index == 2 ? 18f : 9f, 2f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.5f - index * 0.055f));
-                CreateImage(rect, "Amber Telemetry Tick " + index, new Vector2(356f, y), new Vector2(index == 2 ? 18f : 9f, 2f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.45f - index * 0.05f));
-            }
-
-            CreateHudArc(rect, "Dual Link Outer Dial", new Vector2(0f, 18f), 43f, 192f, 348f, 14, CosmicPalette.Violet, 0.38f);
-            CreateHudArc(rect, "Dual Link Inner Dial", new Vector2(0f, 18f), 34f, 204f, 336f, 10, CosmicPalette.Cyan, 0.2f);
-            CreateImage(rect, "Cyan Link Bus", new Vector2(-30f, 18f), new Vector2(38f, 3f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.78f));
-            CreateImage(rect, "Amber Link Bus", new Vector2(30f, 18f), new Vector2(38f, 3f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.74f));
-            var linkCore = CreateImage(rect, "Violet Link Core", new Vector2(0f, 18f), new Vector2(13f, 13f), CosmicPalette.Violet);
-            linkCore.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-
-            var protocolId = CreateText(rect, "Protocol Id", new Vector2(-302f, 76f), new Vector2(118f, 18f), 11, TextAnchor.MiddleLeft, CosmicPalette.Cyan);
-            protocolId.fontStyle = FontStyle.Normal;
-            protocolId.text = "A-07 / ONLINE";
-            var syncState = CreateText(rect, "Sync State", new Vector2(302f, 76f), new Vector2(118f, 18f), 11, TextAnchor.MiddleRight, CosmicPalette.Amber);
-            syncState.fontStyle = FontStyle.Normal;
-            syncState.text = "LINK / ARMED";
-            _tutorialTitle = CreateText(rect, "Tutorial Title", new Vector2(0f, 76f), new Vector2(420f, 30f), 17, TextAnchor.MiddleCenter, CosmicPalette.Silver);
-            _tutorialTitle.fontStyle = FontStyle.Normal;
-            _tutorialTitle.text = "ANOMALY CONTAINMENT PROTOCOL";
-            CreateTutorialSignal(rect, -238f, CosmicPalette.Cyan, "LEFT HAND", "CUT CYAN");
-            CreateTutorialSignal(rect, 0f, CosmicPalette.Violet, "DUAL LINK", "BOTH HANDS");
-            CreateTutorialSignal(rect, 238f, CosmicPalette.Amber, "RIGHT HAND", "CUT AMBER");
-            CreateImage(rect, "Protocol Footer Rail", new Vector2(0f, -71f), new Vector2(604f, 1f), new Color(0.42f, 0.68f, 0.86f, 0.24f));
-            CreateImage(rect, "Protocol Footer Cyan", new Vector2(-326f, -71f), new Vector2(42f, 2f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.68f));
-            CreateImage(rect, "Protocol Footer Amber", new Vector2(326f, -71f), new Vector2(42f, 2f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.62f));
-            _tutorialBody = CreateText(rect, "Tutorial Body", new Vector2(0f, -88f), new Vector2(680f, 24f), 13, TextAnchor.MiddleCenter, CosmicPalette.Silver);
-            _tutorialBody.fontStyle = FontStyle.Normal;
-            _tutorialBody.text = "SECOND BLADE WITHIN 0.9 SEC  //  WRONG SIGNAL OR MISS COSTS 1 LIFE";
+            _hudFrameRoot = NewMenuRect(parent, "World Console Identity", Vector2.zero, parent.sizeDelta);
+            ConsoleText(_hudFrameRoot, "Brand", "STELLAR CLEAVE", new Vector2(-490f, 453f), new Vector2(460f, 30f), 22, MenuAccent);
+            _ceilingStateText = ConsoleText(_hudFrameRoot, "Ceiling Mode", "CEILING NOT MAPPED", new Vector2(440f, 453f), new Vector2(560f, 30f), 21, ConsoleMuted, TextAnchor.MiddleRight);
         }
 
-        private void CreateTutorialSignal(RectTransform parent, float x, Color color, string label, string action)
+        private void BuildTutorial(RectTransform parent)
         {
-            var halo = CreateImage(parent, label + " Signal Halo", new Vector2(x, 22f), new Vector2(29f, 29f), new Color(color.r, color.g, color.b, 0.2f));
-            halo.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            var marker = CreateImage(parent, label + " Signal", new Vector2(x, 22f), new Vector2(17f, 17f), color);
-            marker.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            var title = CreateText(parent, label + " Title", new Vector2(x, -12f), new Vector2(190f, 24f), 13, TextAnchor.MiddleCenter, CosmicPalette.Silver);
-            title.fontStyle = FontStyle.Normal;
-            title.text = label;
-            var command = CreateText(parent, label + " Command", new Vector2(x, -44f), new Vector2(196f, 30f), 18, TextAnchor.MiddleCenter, color);
-            command.text = action;
+            var rect = CreateConsolePanel(parent, "First Contact Tutorial", new Vector2(0f, -69f), new Vector2(940f, 382f), true);
+            _tutorialGroup = rect.gameObject.AddComponent<CanvasGroup>();
+            _tutorialGroup.alpha = 0f;
+            _tutorialTitle = ConsoleText(rect, "Ready Heading", "TWO BLADES. FOUR SIGNALS.", new Vector2(0f, 126f), new Vector2(824f, 44f), 32, MenuPaper);
+            var xs = new[] { -324f, -108f, 108f, 324f };
+            var titles = new[] { "CYAN", "AMBER", "VIOLET", "RED" };
+            var bodies = new[] { "Left blade", "Right blade", "Both hands", "Do not cut" };
+            var colors = new[] { CosmicPalette.Cyan, CosmicPalette.Amber, new Color(0.78f, 0.52f, 1f), new Color(1f, 0.38f, 0.32f) };
+            for (var i = 0; i < 4; i++)
+            {
+                ConsoleText(rect, titles[i], titles[i], new Vector2(xs[i], 47f), new Vector2(175f, 30f), 23, colors[i]);
+                ConsoleText(rect, titles[i] + " Rule", bodies[i], new Vector2(xs[i], 12f), new Vector2(175f, 34f), 25, MenuPaper);
+            }
+            _tutorialBody = ConsoleText(rect, "Dual Timing", "Violet: alternate hands within 0.9s.\nWrong hand or missed non-red signal: lose 1 life.", new Vector2(0f, -45f), new Vector2(824f, 64f), 24, ConsoleMuted);
+            CreateImage(rect, "Ready Divider", new Vector2(0f, -87f), new Vector2(824f, 1f), new Color(0.22f, 0.42f, 0.34f, 0.8f));
+            BuildStageButton(rect, "START GAME", StageAction.StartOrPreview, new Vector2(252f, -133f), 290f);
+            BuildStageButton(rect, "SCAN ROOM", StageAction.Rescan, new Vector2(-252f, -133f), 260f);
+            rect.gameObject.SetActive(false);
         }
 
         private void BuildRuleStrip(RectTransform parent)
         {
-            var strip = new GameObject("Signal Key").AddComponent<RectTransform>();
-            strip.SetParent(parent, false);
-            strip.anchoredPosition = new Vector2(0f, -435f);
-            strip.sizeDelta = new Vector2(860f, 58f);
-            _ruleStripRoot = strip;
-            var stripBacking = strip.gameObject.AddComponent<CosmicPanelGraphic>();
-            stripBacking.CornerCut = 14f;
-            stripBacking.color = new Color(0.004f, 0.016f, 0.032f, 0.48f);
-            stripBacking.raycastTarget = false;
-            CreateImage(strip, "Signal Key Header", new Vector2(0f, 27f), new Vector2(740f, 2f), new Color(0.42f, 0.74f, 0.92f, 0.38f));
-
-            CreateSignalRule(strip, -270f, CosmicPalette.Cyan, "LEFT", "CYAN");
-            CreateSignalRule(strip, 0f, CosmicPalette.Violet, "DUAL", "BOTH");
-            CreateSignalRule(strip, 270f, CosmicPalette.Amber, "RIGHT", "AMBER");
-        }
-
-        private void CreateSignalRule(RectTransform parent, float x, Color color, string label, string action)
-        {
-            var marker = CreateImage(parent, label + " Marker", new Vector2(x - 76f, 0f), new Vector2(13f, 13f), color);
-            marker.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            var title = CreateText(parent, label + " Label", new Vector2(x + 4f, 11f), new Vector2(150f, 18f), 11, TextAnchor.MiddleLeft, CosmicPalette.Silver);
-            title.fontStyle = FontStyle.Normal;
-            title.text = label;
-            var rule = CreateText(parent, label + " Rule", new Vector2(x + 4f, -10f), new Vector2(150f, 22f), 15, TextAnchor.MiddleLeft, color);
-            rule.text = action;
+            _ruleStripRoot = CreateConsolePanel(parent, "Signal Key", new Vector2(0f, -428f), new Vector2(800f, 54f));
+            ConsoleText(_ruleStripRoot, "Left Rule", "LEFT / CYAN", new Vector2(-252f, 0f), new Vector2(224f, 30f), 22, CosmicPalette.Cyan);
+            ConsoleText(_ruleStripRoot, "Dual Rule", "DUAL / 0.9s", new Vector2(0f, 0f), new Vector2(224f, 30f), 22, new Color(0.78f, 0.52f, 1f), TextAnchor.MiddleCenter);
+            ConsoleText(_ruleStripRoot, "Right Rule", "RIGHT / AMBER", new Vector2(252f, 0f), new Vector2(224f, 30f), 22, CosmicPalette.Amber, TextAnchor.MiddleRight);
         }
 
         private void BuildResultPanel(RectTransform parent)
         {
-            var resultObject = new GameObject("Result Debrief");
-            var rect = resultObject.AddComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = new Vector2(680f, 470f);
-            var panel = resultObject.AddComponent<CosmicPanelGraphic>();
-            panel.CornerCut = 30f;
-            panel.color = new Color(0.003f, 0.014f, 0.03f, 0.9f);
-            panel.raycastTarget = false;
-            _resultGroup = resultObject.AddComponent<CanvasGroup>();
+            var rect = CreateConsolePanel(parent, "Result Debrief", new Vector2(0f, 18f), new Vector2(920f, 610f), true);
+            _resultGroup = rect.gameObject.AddComponent<CanvasGroup>();
             _resultGroup.alpha = 0f;
-
-            CreateImage(rect, "Debrief Cyan Header", new Vector2(-158f, 224f), new Vector2(300f, 4f), new Color(CosmicPalette.Cyan.r, CosmicPalette.Cyan.g, CosmicPalette.Cyan.b, 0.94f));
-            CreateImage(rect, "Debrief Amber Header", new Vector2(158f, 224f), new Vector2(300f, 4f), new Color(CosmicPalette.Amber.r, CosmicPalette.Amber.g, CosmicPalette.Amber.b, 0.86f));
-            CreateImage(rect, "Debrief Violet Core", new Vector2(0f, 162f), new Vector2(190f, 2f), new Color(CosmicPalette.Violet.r, CosmicPalette.Violet.g, CosmicPalette.Violet.b, 0.62f));
-            CreateHudArc(rect, "Debrief Orbit", new Vector2(0f, 133f), 68f, 204f, 336f, 14, CosmicPalette.Violet, 0.42f);
-            _resultText = CreateText(rect, "Result Text", new Vector2(0f, -16f), new Vector2(570f, 380f), 31, TextAnchor.MiddleCenter, Color.white);
-            _resultText.lineSpacing = 1.18f;
-            _resultText.text = string.Empty;
+            _resultText = ConsoleText(rect, "Debrief Heading", "", new Vector2(0f, 218f), new Vector2(784f, 58f), 39, MenuPaper);
+            CreateImage(rect, "Debrief Divider", new Vector2(0f, 151f), new Vector2(784f, 1f), new Color(0.27f, 0.46f, 0.37f, 0.7f));
+            _resultRankText = ConsoleText(rect, "Rank", "", new Vector2(-235f, 57f), new Vector2(310f, 120f), 92, MenuAccent);
+            ConsoleText(rect, "Rank Caption", "RANK", new Vector2(-235f, -13f), new Vector2(310f, 32f), 22, ConsoleMuted);
+            _resultScoreText = ConsoleText(rect, "Final Score", "", new Vector2(159f, 70f), new Vector2(466f, 80f), 64, MenuPaper, TextAnchor.MiddleRight);
+            ConsoleText(rect, "Score Caption", "FINAL SCORE", new Vector2(159f, 3f), new Vector2(466f, 36f), 22, ConsoleMuted, TextAnchor.MiddleRight);
+            _resultDetailText = ConsoleText(rect, "Round Detail", "", new Vector2(0f, -81f), new Vector2(784f, 60f), 26, MenuPaper);
+            CreateImage(rect, "Debrief Footer Rule", new Vector2(0f, -144f), new Vector2(784f, 1f), new Color(0.27f, 0.46f, 0.37f, 0.7f));
+            BuildStageButton(rect, "PLAY AGAIN", StageAction.Rescan, new Vector2(229f, -220f), 304f);
+            BuildStageButton(rect, "EXIT", StageAction.Exit, new Vector2(-251f, -220f), 280f);
+            rect.gameObject.SetActive(false);
         }
 
-        private void UpdateHudFacing(float deltaTime)
-        {
-            // Mission console transforms only with its world parent. Head rotation must never
-            // drag the game UI into the player's face.
-        }
-
+        private void UpdateHudFacing(float deltaTime) { }
         private void SetCoreHudVisible(bool visible)
         {
             if (_hudFrameRoot != null) _hudFrameRoot.gameObject.SetActive(visible);
             if (_scorePanelRoot != null) _scorePanelRoot.gameObject.SetActive(visible);
             if (_timerPanelRoot != null) _timerPanelRoot.gameObject.SetActive(visible);
             if (_lifePanelRoot != null) _lifePanelRoot.gameObject.SetActive(visible);
-            if (_ruleStripRoot != null) _ruleStripRoot.gameObject.SetActive(visible);
+            if (_ruleStripRoot != null) _ruleStripRoot.gameObject.SetActive(visible && _state == GameState.Playing);
         }
-
-        private static void PlaceAtScreenCorner(RectTransform rect, bool left, float horizontalMargin, float verticalMargin)
-        {
-            rect.anchorMin = new Vector2(left ? 0f : 1f, 1f);
-            rect.anchorMax = rect.anchorMin;
-            rect.pivot = new Vector2(left ? 0f : 1f, 1f);
-            rect.anchoredPosition = new Vector2(left ? horizontalMargin : -horizontalMargin, -verticalMargin);
-        }
-
         private void SetTutorialVisible(bool visible)
         {
-            if (_tutorialGroup == null)
-            {
-                return;
-            }
+            if (_tutorialGroup == null) return;
             _tutorialGroup.alpha = visible ? 1f : 0f;
+            _tutorialGroup.gameObject.SetActive(visible);
             _tutorialGroup.blocksRaycasts = false;
         }
-
+        private void RefreshConsolePresentation()
+        {
+            if (_statusPanelRoot != null) _statusPanelRoot.gameObject.SetActive(!string.IsNullOrEmpty(_statusText.text) && _state != GameState.Results);
+            if (_eventPanelRoot != null) _eventPanelRoot.gameObject.SetActive(!string.IsNullOrEmpty(_eventText.text) && _eventText.color.a > 0.01f && _state != GameState.Results);
+            if (_ceilingStateText != null)
+            {
+                _ceilingStateText.text = _hasDetectedCeiling ? "CEILING ANCHORED" : _ceilingPreviewSelected ? "PREVIEW / CEILING NOT MAPPED" : "CEILING NOT MAPPED";
+                _ceilingStateText.color = _hasDetectedCeiling ? ConsoleMuted : MenuAccent;
+            }
+            if (_stageButtons.Count > 0 && _stageButtons[0].Control.Label != null)
+                _stageButtons[0].Control.Label.text = CanUsePortal ? "START GAME" : _ceilingScanComplete ? "TRY PREVIEW" : "SCANNING...";
+        }
         private void UpdateHud()
         {
             _scoreText.text = _score.ToString("000000");
-            _comboText.text = _overdriveTimer > 0f ? $"OVERDRIVE  {_overdriveTimer:0.0}" : $"CHAIN {_combo:00}";
+            _comboText.text = _overdriveTimer > 0f ? $"OVERDRIVE {_overdriveTimer:0.0}" : $"CHAIN {_combo:00}";
             var seconds = Mathf.Max(0, Mathf.CeilToInt(_timeRemaining));
             _timerText.text = $"{seconds / 60:00}:{seconds % 60:00}";
-            _timerText.color = _timeRemaining < 10f ? CosmicPalette.Red : Color.white;
-            _livesText.text = $"LIFE LINK  /  {_lives} OF {MaxLives}";
-            for (var index = 0; index < _lifePips.Length; index++)
-            {
-                if (_lifePips[index] == null)
-                {
-                    continue;
-                }
-                var active = index < _lives;
-                _lifePips[index].color = active ? Color.white : new Color(0.18f, 0.2f, 0.24f, 0.52f);
-                _lifePips[index].rectTransform.localScale = Vector3.Lerp(
-                    _lifePips[index].rectTransform.localScale,
-                    active ? Vector3.one : Vector3.one * 0.72f,
-                    1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
-            }
+            _timerText.color = _timeRemaining < 10f ? MenuAccent : MenuPaper;
+            _livesText.text = $"LIVES  {_lives} / {MaxLives}";
+            for (var i = 0; i < _lifePips.Length; i++)
+                if (_lifePips[i] != null) _lifePips[i].color = i < _lives ? MenuAccent : new Color(0.20f, 0.31f, 0.26f, 1f);
         }
-
         private void SetEvent(string text, Color color, float duration)
         {
+            if (_eventText == null) return;
             _eventText.text = text;
-            color.a = 1f;
-            _eventText.color = color;
+            _eventText.color = MenuPaper;
             _eventTimer = duration;
+            if (_eventPanelRoot != null) _eventPanelRoot.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
-
         private Text CreateText(RectTransform parent, string name, Vector2 position, Vector2 size, int fontSize, TextAnchor alignment, Color color)
         {
             var gameObject = new GameObject(name);
