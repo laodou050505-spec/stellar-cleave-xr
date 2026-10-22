@@ -496,6 +496,11 @@ namespace CosmicSlice
                     _lastVisualizedBeat = musicBeat;
                     _portalPulse = Mathf.Max(_portalPulse, musicBeat % 4 == 0 ? 0.72f : 0.32f);
                     EmitMeteorShowerBeat(musicBeat);
+                    // Polish: during OVERDRIVE, pulse a violet border flash on every downbeat (beat-synced, lightweight)
+                    if (_overdriveTimer > 0f && musicBeat % 4 == 0)
+                    {
+                        Flash(CosmicPalette.Violet, 0.07f);
+                    }
                 }
 
                 AdvanceMusicSpawns(_lastMusicTimeSamples, _musicSource.clip.frequency);
@@ -631,10 +636,27 @@ namespace CosmicSlice
             _musicTargetVolume = 0.12f;
             ClearTargets();
             var contained = _lives > 0;
+            // Polish: dramatic result flash — cool cyan for success, heavy red for failure
+            Flash(contained ? CosmicPalette.Cyan : CosmicPalette.Red, contained ? 0.38f : 0.72f);
             var rank = !contained ? "F" : _score >= 9000 ? "S" : _score >= 6000 ? "A" : _score >= 3500 ? "B" : "C";
             var heading = contained ? "CONTAINMENT COMPLETE" : "LIFE LINK LOST";
             _resultText.text = heading;
             _resultRankText.text = rank;
+            // Polish: rank letter uses its semantic color — S=white, A=cyan, B=amber, C=muted, F=red
+            if (_resultRankText != null)
+            {
+                _resultRankText.color = rank switch
+                {
+                    "S" => Color.white,
+                    "A" => CosmicPalette.Cyan,
+                    "B" => CosmicPalette.Amber,
+                    "F" => CosmicPalette.Red,
+                    _ => new Color(0.72f, 0.79f, 0.84f, 1f)   // C = CosmicPalette.Silver
+                };
+            }
+            // Polish: success heading in cyan, failure in coral/red for immediate readability
+            if (_resultText != null)
+                _resultText.color = contained ? CosmicPalette.Cyan : MenuAccent;
             _resultScoreText.text = _score.ToString("000000");
             _resultDetailText.text = $"BEST CHAIN  {_bestCombo:00}          LIVES  {_lives}/{MaxLives}" +
                 (_ceilingPreviewSelected ? "\nPREVIEW RUN / CEILING NOT MAPPED" : "");
@@ -783,13 +805,17 @@ namespace CosmicSlice
             PlaySfx(bladeWhoosh, 0.62f, Random.Range(0.92f, 1.12f));
             PlaySfx(positive, 0.42f, Mathf.Min(1.45f, 0.95f + _combo * 0.025f));
             Blade(hand).Haptic(Mathf.Min(0.8f, 0.34f + _combo * 0.025f), 0.06f);
-            Flash(CosmicPalette.For(target.Kind), 0.12f);
+            // Polish: flash intensity scales with the growing combo (0.12 at chain 1 → up to 0.34 at chain 12)
+            Flash(CosmicPalette.For(target.Kind), 0.12f + Mathf.Min(0.22f, _combo * 0.018f));
 
             if (_combo >= 8 && _overdriveTimer <= 0f)
             {
                 _overdriveTimer = 5.2f;
                 SetEvent("OVERDRIVE", Color.white, 1.3f);
-                Flash(CosmicPalette.Violet, 0.28f);
+                // Polish: stronger OVERDRIVE activation flash + simultaneous haptic burst on both hands
+                Flash(CosmicPalette.Violet, 0.55f);
+                _leftBlade?.Haptic(0.9f, 0.12f);
+                _rightBlade?.Haptic(0.9f, 0.12f);
             }
 
             RemoveTarget(target);
@@ -803,7 +829,8 @@ namespace CosmicSlice
             var position = target.transform.position;
             SpawnBurst(position, CosmicPalette.Red, Vector3.up, false, 8);
             PlaySfx(negative, 0.55f, 1.12f);
-            Blade(hand).Haptic(0.5f, 0.09f);
+            // Polish: wrong-hand error — longer, stronger haptic to clearly distinguish from a correct hit
+            Blade(hand).Haptic(0.78f, 0.16f);
             RemoveTarget(target);
             LoseLife(hand == HandSide.Left ? "WRONG BLADE  L" : "WRONG BLADE  R", 0.22f);
         }

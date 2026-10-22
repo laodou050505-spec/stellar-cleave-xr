@@ -183,8 +183,24 @@ namespace CosmicSlice
         {
             _scoreText.text = _score.ToString("000000");
             _comboText.text = _overdriveTimer > 0f ? $"OVERDRIVE {_overdriveTimer:0.0}" : $"CHAIN {_combo:00}";
+            // Polish: chain color scales with momentum — muted → coral → violet → pulsing white
+            if (_comboText != null)
+            {
+                if (_overdriveTimer > 0f)
+                {
+                    var overdrivePulse = (Mathf.Sin(Time.unscaledTime * 5.2f) + 1f) * 0.5f;
+                    _comboText.color = Color.Lerp(CosmicPalette.Violet, Color.white, overdrivePulse * 0.6f);
+                }
+                else
+                {
+                    _comboText.color = _combo >= 8 ? CosmicPalette.Violet
+                                     : _combo >= 4 ? MenuAccent
+                                     : ConsoleMuted;
+                }
+            }
             var seconds = Mathf.Max(0, Mathf.CeilToInt(_timeRemaining));
             _timerText.text = $"{seconds / 60:00}:{seconds % 60:00}";
+            // Polish: timer text becomes more urgent below 10s (brighter coral instead of muted)
             _timerText.color = _timeRemaining < 10f ? MenuAccent : MenuPaper;
             _livesText.text = $"LIVES  {_lives} / {MaxLives}";
             for (var i = 0; i < _lifePips.Length; i++)
