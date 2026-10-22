@@ -84,15 +84,47 @@ namespace CosmicSlice
             Destroy(tip.GetComponent<Collider>());
             tip.GetComponent<Renderer>().sharedMaterial = _whiteCoreMaterial;
 
-            var hiltMaterial = new Material(Shader.Find("Standard"))
+            if (_game.energyHiltModel != null)
             {
-                name = name + " Graphite Hilt",
-                color = new Color(0.045f, 0.052f, 0.065f)
-            };
-            if (hiltMaterial.HasProperty("_Metallic")) hiltMaterial.SetFloat("_Metallic", 0.9f);
-            if (hiltMaterial.HasProperty("_Glossiness")) hiltMaterial.SetFloat("_Glossiness", 0.82f);
-            var hilt = CreateBladeCylinder("Graphite Hilt", _toolVisualRoot, new Vector3(0f, 0f, -0.09f), new Vector3(0.028f, 0.075f, 0.028f), hiltMaterial);
-            hilt.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                // Sci-fi GLB hilt (精修): modeled along Blender Y axis (+Y = emitter, -Y = pommel).
+                // A 90° X rotation aligns its long axis with Unity's +Z (blade direction).
+                // Pivot placed at grip centre Z=-0.09, matching original cylinder position.
+                var hiltInst = Object.Instantiate(_game.energyHiltModel, _toolVisualRoot);
+                hiltInst.name = "Sci-Fi Energy Hilt (" + _side + ")";
+                hiltInst.transform.localPosition = new Vector3(0f, 0f, -0.09f);
+                hiltInst.transform.localRotation  = Quaternion.Euler(90f, 0f, 0f);
+                hiltInst.transform.localScale      = Vector3.one;
+                // Tint energy-slot and button emissives to match blade colour (cyan / amber).
+                var bladeColor = _side == HandSide.Left ? CosmicPalette.Cyan : CosmicPalette.Amber;
+                foreach (var r in hiltInst.GetComponentsInChildren<Renderer>(true))
+                {
+                    foreach (var mat in r.materials)
+                    {
+                        if (mat.name.StartsWith("Energy_Core") || mat.name.StartsWith("Button_Accent"))
+                        {
+                            if (mat.HasProperty("_EmissionColor"))
+                            {
+                                mat.EnableKeyword("_EMISSION");
+                                mat.SetColor("_EmissionColor", bladeColor * 1.5f);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Fallback: original procedural graphite cylinder hilt.
+                var hiltMaterial = new Material(Shader.Find("Standard"))
+                {
+                    name = name + " Graphite Hilt",
+                    color = new Color(0.045f, 0.052f, 0.065f)
+                };
+                if (hiltMaterial.HasProperty("_Metallic")) hiltMaterial.SetFloat("_Metallic", 0.9f);
+                if (hiltMaterial.HasProperty("_Glossiness")) hiltMaterial.SetFloat("_Glossiness", 0.82f);
+                var hilt = CreateBladeCylinder("Graphite Hilt", _toolVisualRoot,
+                    new Vector3(0f, 0f, -0.09f), new Vector3(0.028f, 0.075f, 0.028f), hiltMaterial);
+                hilt.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            }
 
             // A full forearm/glove is intentionally omitted in XR.  It cannot improve the
             // slicing interaction, but can dominate the center of view in the emulator or when

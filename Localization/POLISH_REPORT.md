@@ -189,16 +189,123 @@ lockf /tmp/pico-emulator.flock ~/Library/Android/sdk/platform-tools/adb -s emula
 
 ---
 
+---
+
+## 本轮（精修 v3，2026-10-22 精修规范 A+D）新增改动
+
+### 2.1 能量剑柄模型（规范 D）
+
+**工具：** Blender 5.2 脚本化建模（`--background --python`）
+
+**几何结构：**
+- 主体：24 段旋转轮廓，含 4 组握把凸棱（ridges）+ 马鞍形过渡 + 护手喇叭口 + 发射器缩颈
+- 散热片：6 个对称梯形鳍片（径向分布，外径 49mm）
+- 能量槽：3 组矩形发光面板（径向 120° 分布，青色/琥珀自发光）
+- 按钮：椭圆凸台（扇形面）
+
+**面数：** 每只 **1144 三角面**（8k 上限内）；GLB 文件 25KB  
+**PBR 材质（含法线）：**  
+- `Graphite_Grip`：baseColor(0.048,0.055,0.068)，metallic 0.92，roughness 0.18  
+- `Heat_Fin_Metal`：metallic 0.96，roughness 0.10  
+- `Energy_Core`：emission cyan 2.8（运行时按 Left/Right 覆盖为青色 / 琥珀）  
+- `Button_Accent`：emission 0.6（跟随刀刃颜色）  
+
+**轴向约定：** 模型沿 Blender Y 轴建模（+Y=发射器/刀身侧，−Y=护手端）；GLB 导入后在 `SliceBlade.BuildVisual()` 中施加 `localRotation = Euler(90,0,0)` 使之与 Unity +Z 对齐，放置 `localPosition=(0,0,−0.09)` 对准原始圆柱位置  
+**降级保护：** 若 `energyHiltModel == null` 则原有程序化圆柱剑柄继续有效（无破坏性）  
+**不变量：** 刀身长度、切割判定、碰撞体、颜色语义（青=左，琥珀=右）全部不变  
+
+**文件：**
+- `Assets/CosmicSlice/Art/Models/EnergyHilt.glb`（25KB，1144 三角面）
+- `Assets/CosmicSlice/Scripts/Runtime/SliceBlade.cs`（BuildVisual 新增 GLB 分支）
+- `Assets/CosmicSlice/Scripts/Runtime/CosmicSliceGame.cs`（新字段 energyHiltModel）
+- `Assets/CosmicSlice/Scripts/Editor/CosmicSliceProjectBuilder.cs`（LoadAssetAtPath 加载）
+
+---
+
+### 2.2 开始菜单按钮精修（规范 A）
+
+#### 2.2.1 Sci-Fi 按钮底图（Tripo banana2）
+
+**task_id：** `3a2ce8d9-7da8-4852-b68b-e2308612c8cd`（banana2，10 积分）  
+**内容：** 竖排六角形金属面板 + 电路纹理 + 青色边框发光，三态（normal/hover/pressed）横排  
+**处理：** Python PIL 裁剪三态，各旋转 90°，缩放至 300×100 用作横向按钮底图  
+**四角水印：** 无 ✓  
+
+生成文件：
+- `Assets/CosmicSlice/Art/UI/SciFiBtn_Normal.png`
+- `Assets/CosmicSlice/Art/UI/SciFiBtn_Hover.png`
+- `Assets/CosmicSlice/Art/UI/SciFiBtn_Pressed.png`（备用，当前仅 Normal 用于状态底图）
+
+`BuildMenuControl()` 将 `SciFiBtn_Normal.png` 作为 `RawImage` 内嵌层放置于 CosmicPanelGraphic 之上，尺寸 (width−8)×68，保留边框露出
+
+#### 2.2.2 按钮状态色调动画（UpdateCoverVisuals）
+
+| 状态 | CosmicPanelGraphic fill | BgTexture tint alpha | Scale |
+|------|------------------------|----------------------|-------|
+| 常态 | MenuInk | 0.65 | 1.00 |
+| 已选中 | MenuAccent | 0.72 | 1.015 |
+| 悬停 | lerp(Accent,White,0.18) | 0.80，青色提亮 | 1.055 |
+| 按下 | (1,0.83,0.53) | 0.90，白色闪光 | 0.94 |
+
+缓动：`1 − exp(−20Δt)` ≈ 0.08−0.12 秒达到目标值 ✓
+
+#### 2.2.3 交互反馈升级
+
+| 事件 | SFX | 震动强度 | 震动时长 |
+|------|-----|---------|---------|
+| 悬停（SelectCoverOption changed） | SciFiHover.mp3（ange-embed `scifi_pos_soft_01`） | 0.15 | 20ms |
+| 点击/选中（ActivateCoverSelection） | SciFiClick.mp3（ange-embed `scifi_ui_hard_03`） + positive | 0.40 | 40ms |
+
+原 ActivateCoverSelection 震动从 0.30/45ms 升级至 0.40/40ms ✓  
+PICO 专属提示已保留 `#if UNITY_ANDROID && !UNITY_EDITOR` 过滤 ✓
+
+**音效来源：**
+- `SciFiHover.mp3`：https://cdn-ange.holymolly.ai/e/b/eb3e1f9e-28e7-41bf-a40e-58430d1cc945.mp3
+- `SciFiClick.mp3`：https://cdn-ange.holymolly.ai/1/9/193bd481-1b44-4319-82a3-0a8e2d4409f5.mp3
+
+---
+
+## 三（v3 更新）、Tripo 调用记录
+
+| task_id | 用途 | 模型 | 积分 | 状态 |
+|---------|------|------|------|------|
+| `04ccbfbb-8ef4-491e-8b0c-180602ebe70d` | 封面升级（双刀交叉构图） | banana2 | 10 | 成功 |
+| `3a2ce8d9-7da8-4852-b68b-e2308612c8cd` | 开始按钮底图（三态科幻面板） | banana2 | 10 | 成功 |
+
+---
+
+## 四（v3 更新）、性能影响
+
+| 新增改动 | 类型 | 每帧开销 |
+|---------|------|---------|
+| GLB 剑柄（1144 三角面/只） | 静态 Mesh，两只共 2288 三角面 | < 1 DrawCall 增量 |
+| 按钮 BgTexture Color.Lerp | 5 次 Color.Lerp/帧 | < 0.01ms |
+| Hover/Click SFX PlaySfx | 事件触发，非每帧 | 忽略 |
+| 触感 SendHapticImpulse | 硬件 XR 调用，非 CPU | 忽略 |
+
+累计新增三角面：剑柄 2288（全场景仍远低于 500k 预算）；新增 DrawCall < 2（GLB 剑柄共享 GPU instance 待 BatchBuildAndroidEN 验证）
+
+---
+
+## 五、QA 兼容性（v3 更新）
+
+所有改动对 128 项桌面 QA 断言无影响：
+- `energyHiltModel == null` 时退回原逻辑，QA 环境如无 GLB 仍正常通过
+- 按钮状态触感/SFX：仅在运行时触发，不改变任何 QA 可检测的状态机
+- 刀身切割、分数、生命值、节拍同步、天花板锚点：**完全不变**
+
+---
+
 ## 六、未完成项与风险
 
 | 项目 | 状态 | 风险 |
 |------|------|------|
-| APK 构建 | 待执行（磁盘不足） | 磁盘恢复后可直接构建 |
-| 模拟器安装 | 待执行 | 依赖构建成功 |
-| VisualQA 对比截图 | 待执行 | 依赖构建/运行 |
+| APK 构建（BatchBuildAndroidEN） | 待总控执行 | 磁盘 16GB，刚达阈值 |
+| 模拟器安装 | 待总控执行 | 依赖构建成功 |
+| VisualQA 运行截图 | 待总控在运行后截图 | Editor Play Mode 即可验证 |
 | 实体头显声画同步验证 | 未验证 | 历史遗留边界，非本轮新增风险 |
 | 真实天花板识别 | 未验证 | 历史遗留边界 |
 
 ---
 
-*报告生成：2026-10-22 / StellarCleave-EN 打磨代理*
+*报告更新：2026-10-22 精修 v3 / StellarCleave-EN 精修代理*

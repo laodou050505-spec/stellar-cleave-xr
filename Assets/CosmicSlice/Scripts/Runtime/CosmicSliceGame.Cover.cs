@@ -49,6 +49,7 @@ namespace CosmicSlice
             public Outline Outline;
             public Text Label;
             public Image Marker;
+            public RawImage BgTexture;   // 精修：sci-fi 纹理背景层
             public float Press;
         }
 
@@ -190,11 +191,13 @@ namespace CosmicSlice
                 GetComponent<PicoCeilingLocator>()?.PrepareGameplayTransition();
             }
             PlaySfx(positive, 0.45f, _coverSelection == 1 ? 0.8f : 1.1f);
+            // 精修：sci-fi click SFX + 强按下震动 0.4 / 40ms（规范 A）
+            if (menuClick != null) PlaySfx(menuClick, 0.70f, 1.0f);
             if (_coverInputHand >= 0)
             {
                 var node = _coverInputHand == 0 ? UnityEngine.XR.XRNode.LeftHand : UnityEngine.XR.XRNode.RightHand;
                 var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
-                if (device.isValid) device.SendHapticImpulse(0, 0.30f, 0.045f);
+                if (device.isValid) device.SendHapticImpulse(0, 0.40f, 0.040f);
             }
             Debug.Log($"COSMIC_MENU_PRESS option={_coverSelection} hand={_coverInputHand}");
         }
@@ -227,7 +230,18 @@ namespace CosmicSlice
                 if (selection == 1) _coverStatusText.text = "EXIT TO PICO HOME";
 #endif
             }
-            if (changed && audible) PlaySfx(positive, 0.16f, 1.35f);
+            if (changed && audible)
+            {
+                PlaySfx(positive, 0.16f, 1.35f);
+                // 精修：sci-fi hover SFX + 轻震动 0.15 / 20ms（规范 A）
+                if (menuHover != null) PlaySfx(menuHover, 0.45f, 1.0f);
+                if (_coverInputHand >= 0)
+                {
+                    var node = _coverInputHand == 0 ? UnityEngine.XR.XRNode.LeftHand : UnityEngine.XR.XRNode.RightHand;
+                    var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
+                    if (device.isValid) device.SendHapticImpulse(0, 0.15f, 0.020f);
+                }
+            }
         }
 
         private void SetCoverPage(bool guide)
@@ -271,6 +285,15 @@ namespace CosmicSlice
                 button.Label.color = luminance > 0.16f ? MenuInk : MenuPaper;
                 button.Outline.effectColor = hovered ? Color.white : selected ? MenuAccent : new Color(0.21f, 0.57f, 0.47f, 1f);
                 button.Marker.color = selected ? MenuInk : new Color(0.31f, 0.79f, 0.64f, 0f);
+                // 精修：sci-fi 纹理背景色调随状态变化（hover=青色提亮，press=白色闪光）
+                if (button.BgTexture != null)
+                {
+                    var bgTint = pressed ? new Color(1.0f, 1.0f, 1.0f, 0.90f)
+                               : hovered ? new Color(0.65f, 0.95f, 1.00f, 0.80f)
+                               : selected ? new Color(0.80f, 0.88f, 0.90f, 0.72f)
+                               : new Color(0.72f, 0.82f, 0.85f, 0.65f);
+                    button.BgTexture.color = Color.Lerp(button.BgTexture.color, bgTint, blend);
+                }
                 var scale = pressed ? 0.94f : hovered ? 1.055f : selected ? 1.015f : 1f;
                 button.Rect.localScale = Vector3.Lerp(button.Rect.localScale, Vector3.one * scale, blend);
             }
@@ -446,10 +469,23 @@ namespace CosmicSlice
             collider.size = new Vector3(width, 76f, 40f);
             collider.center = new Vector3(0f, 0f, -20f);
             rect.gameObject.AddComponent<CosmicWorldMenuOption>().Configure(index);
+
+            // 精修：sci-fi 纹理背景（来自 Tripo banana2），作为 CosmicPanelGraphic 之上的内嵌层
+            RawImage bgTex = null;
+            if (menuBtnNormal != null)
+            {
+                var bgRect = NewMenuRect(rect, "SciFi BG", Vector2.zero,
+                    new Vector2(width - 8f, 68f));
+                bgTex = bgRect.gameObject.AddComponent<RawImage>();
+                bgTex.texture = menuBtnNormal;
+                bgTex.color   = new Color(0.72f, 0.82f, 0.85f, 0.65f);
+                bgTex.raycastTarget = false;
+            }
+
             var text = MenuText(rect, "Option Label", label, new Vector2(6f, 0f), new Vector2(width - 48f, 50f), 30, MenuPaper, TextAnchor.MiddleCenter);
             text.GetComponent<Shadow>().enabled = false;
             var marker = CreateImage(rect, "Focus Mark", new Vector2(-width * 0.5f + 20f, 0f), new Vector2(5f, 24f), Color.clear);
-            _menuControls[index] = new MenuControl { Rect = rect, Fill = fill, Outline = outline, Label = text, Marker = marker };
+            _menuControls[index] = new MenuControl { Rect = rect, Fill = fill, Outline = outline, Label = text, Marker = marker, BgTexture = bgTex };
             return rect;
         }
 

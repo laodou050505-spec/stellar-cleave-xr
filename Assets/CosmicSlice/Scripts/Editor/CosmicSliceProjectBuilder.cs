@@ -353,6 +353,22 @@ namespace CosmicSlice.Editor
             game.negative = LoadAudio("Negative.mp3");
             game.explosion = LoadAudio("Explosion.mp3");
 
+            // 精修 v3：sci-fi UI 音效（来源：ange-embed ui_audio）
+            game.menuHover = LoadAudio("UIAudio/SciFiHover.mp3");
+            game.menuClick = LoadAudio("UIAudio/SciFiClick.mp3");
+
+            // 精修 v3：sci-fi 按钮底图（来自 Tripo banana2）
+            game.menuBtnNormal = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                "Assets/CosmicSlice/Art/UI/SciFiBtn_Normal.png");
+            if (game.menuBtnNormal == null)
+                Debug.LogWarning("[CosmicSlice] SciFiBtn_Normal.png not found – buttons will use solid fill.");
+
+            // 精修 v3：sci-fi 能量剑柄 GLB 模型（Blender 5.2 脚本化建模）
+            game.energyHiltModel = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/CosmicSlice/Art/Models/EnergyHilt.glb");
+            if (game.energyHiltModel == null)
+                Debug.LogWarning("[CosmicSlice] EnergyHilt.glb not found – falling back to procedural hilt.");
+
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Selection.activeGameObject = runtime;

@@ -44,6 +44,14 @@ namespace CosmicSlice
         public AudioClip negative;
         public AudioClip explosion;
 
+        [Header("Sci-Fi UI (精修)")]
+        public AudioClip menuHover;
+        public AudioClip menuClick;
+        public Texture2D menuBtnNormal;
+
+        [Header("Energy Hilt Model (精修)")]
+        public GameObject energyHiltModel;
+
         public Transform RigTransform => _rigTransform;
         public bool IsQaMode => _qaMode;
         public bool IsGameplayStageActive => _gameplayStageActive;
