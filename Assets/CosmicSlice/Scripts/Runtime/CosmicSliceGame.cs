@@ -637,7 +637,7 @@ namespace CosmicSlice
             ClearTargets();
             var contained = _lives > 0;
             // Polish: dramatic result flash — cool cyan for success, heavy red for failure
-            Flash(contained ? CosmicPalette.Cyan : CosmicPalette.Red, contained ? 0.38f : 0.72f);
+            Flash(contained ? CosmicPalette.Cyan : CosmicPalette.Red, contained ? 0.38f : 0.42f); // 失败闪光降到 0.42，VR 中大面积强红闪会引起不适
             var rank = !contained ? "F" : _score >= 9000 ? "S" : _score >= 6000 ? "A" : _score >= 3500 ? "B" : "C";
             var heading = contained ? "CONTAINMENT COMPLETE" : "LIFE LINK LOST";
             _resultText.text = heading;
