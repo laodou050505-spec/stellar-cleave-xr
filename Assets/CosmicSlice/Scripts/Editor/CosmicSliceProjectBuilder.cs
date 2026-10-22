@@ -78,6 +78,17 @@ namespace CosmicSlice.Editor
             BuildPicoApk();
         }
 
+        /// <summary>英文版专用构建：输出到 Builds/EN/StellarCleave-EN-PICO.apk</summary>
+        public static void BatchBuildAndroidEN()
+        {
+            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+            RegenerateCompleteDemo();
+            var projectRoot = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
+            var output = Path.Combine(projectRoot, "Builds", "EN", "StellarCleave-EN-PICO.apk");
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
+            Build(ScenePath, output, BuildTarget.Android);
+        }
+
         [MenuItem("Cosmic Slice/Validate PICO Baseline")]
         public static void BatchValidate()
         {
