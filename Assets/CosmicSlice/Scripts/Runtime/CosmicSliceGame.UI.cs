@@ -39,7 +39,7 @@ namespace CosmicSlice
             _timerPanelRoot = CreateConsolePanel(rect, "Timer Instrument", new Vector2(560f, 337f), new Vector2(320f, 154f));
             ConsoleText(_timerPanelRoot, "Timer Label", "TIME REMAINING", new Vector2(0f, 47f), new Vector2(260f, 28f), 21, ConsoleMuted, TextAnchor.MiddleRight);
             _timerText = ConsoleText(_timerPanelRoot, "Time", "01:15", new Vector2(0f, 0f), new Vector2(260f, 64f), 54, MenuPaper, TextAnchor.MiddleRight);
-            ConsoleText(_timerPanelRoot, "Round Label", "ANOMALY PROTOCOL", new Vector2(0f, -48f), new Vector2(260f, 28f), 20, ConsoleMuted, TextAnchor.MiddleRight);
+            // Decorative sub-label removed — "TIME REMAINING" above already labels this panel.
             _lifePanelRoot = CreateConsolePanel(rect, "Life Link Instrument", new Vector2(-560f, 215f), new Vector2(320f, 64f));
             _livesText = ConsoleText(_lifePanelRoot, "Lives Label", "LIVES  3 / 3", new Vector2(-40f, 0f), new Vector2(210f, 32f), 24, MenuPaper);
             for (var i = 0; i < _lifePips.Length; i++)

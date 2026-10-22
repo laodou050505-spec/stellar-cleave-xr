@@ -253,7 +253,7 @@ namespace CosmicSlice
             SelectCoverOption(0, false);
             UpdateCoverVisuals(0.2f);
             yield return null;
-            QaCheck(_coverSelection == 0 && _coverStatusText.text == "ANOMALY PROTOCOL READY", "cover Start Game selection restores the active cyan feedback");
+            QaCheck(_coverSelection == 0 && _coverStatusText.text == "READY", "cover Start Game selection restores the active cyan feedback");
             yield return CaptureQaFrame("00c-cover-start-focus.png");
             yield return RunCoverInteractionQa();
             yield return new WaitForSecondsRealtime(0.12f);

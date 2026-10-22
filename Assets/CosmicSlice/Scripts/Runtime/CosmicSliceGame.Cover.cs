@@ -217,7 +217,7 @@ namespace CosmicSlice
             {
                 _coverStatusText.text = selection switch
                 {
-                    0 => "ANOMALY PROTOCOL READY",
+                    0 => "READY",
                     1 => "EXIT TO DESKTOP",
                     2 => "FOUR SIGNALS. TWO BLADES. ONE PROTOCOL.",
                     3 => "RETURN TO MAIN MENU",
@@ -239,7 +239,11 @@ namespace CosmicSlice
             _coverHovered = -1;
             _coverInputHand = -1;
             SelectCoverOption(guide ? 3 : 0, false);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            _coverPromptText.text = "POINT + TRIGGER TO SELECT";
+#else
             _coverPromptText.text = guide ? "POINT + TRIGGER TO SELECT   /   ESC TO RETURN" : "POINT + TRIGGER   /   MOUSE CLICK   /   ARROWS + ENTER";
+#endif
             Debug.Log(guide ? "COSMIC_MENU_GUIDE_OPEN" : "COSMIC_MENU_HOME_OPEN");
         }
 
@@ -386,7 +390,7 @@ namespace CosmicSlice
             BuildGuideContents(_coverGuidePage);
             BuildMenuControl(_coverGuidePage, "BACK", 3, new Vector2(-501f, -355f), 250f);
             BuildMenuControl(_coverGuidePage, "START GAME", 4, new Vector2(495f, -355f), 340f);
-            _coverStatusText = MenuText(_coverRoot, "Cover Status", "ANOMALY PROTOCOL READY", new Vector2(0f, -412f), new Vector2(1400f, 32f), 22, MenuPaper, TextAnchor.MiddleCenter);
+            _coverStatusText = MenuText(_coverRoot, "Cover Status", "READY", new Vector2(0f, -412f), new Vector2(1400f, 32f), 22, MenuPaper, TextAnchor.MiddleCenter);
             _coverPromptText = MenuText(_coverRoot, "Cover Prompt", "", new Vector2(0f, -455f), new Vector2(1400f, 28f), 19, new Color(0.55f, 0.76f, 0.68f), TextAnchor.MiddleCenter);
             BuildCoverControllerPointers();
             _coverRoot.SetAsLastSibling();
