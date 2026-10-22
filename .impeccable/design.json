@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-08T06:41:28.268558+00:00",
+  "title": "星际切割 / STELLAR CLEAVE — 视觉与交互规范",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "menu-label-shadow",
+        "value": "none",
+        "purpose": "菜单按钮文字禁用 Unity Shadow；其他实时文字维持原有阴影。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "menu-state-blend",
+        "value": "1 - exp(-20 × deltaTime)",
+        "purpose": "按钮颜色和缩放收敛；HTML 状态预览的 CSS transition 为近似。"
+      },
+      {
+        "name": "menu-press-feedback",
+        "value": "0.18s",
+        "purpose": "按压可见状态。"
+      },
+      {
+        "name": "menu-action-delay",
+        "value": "0.16s",
+        "purpose": "先显示反馈，期间拒绝重复激活。"
+      },
+      {
+        "name": "menu-start-fade",
+        "value": "0.72s SmoothStep",
+        "purpose": "开始扫描前淡出。"
+      },
+      {
+        "name": "menu-exit-fade",
+        "value": "0.35s SmoothStep",
+        "purpose": "退出应用前淡出。"
+      },
+      {
+        "name": "meteor-body-anchors",
+        "value": "±1.85m; heading captured at entry/reset; world-space particles and trails",
+        "purpose": "发射区随玩家平移；进入或重置时固定水平方向，转头不旋转流星雨；已发射粒子和拖尾留在世界空间。这里的身体方向为固定水平头向近似，非躯干追踪。"
+      },
+      {
+        "name": "meteor-diagonal-fall",
+        "value": "forward 0.85–1.25m/s; downward 2.55–3.1m/s; trails 0.16–0.24s",
+        "purpose": "固定方向下斜向坠落，短拖尾保持身体两侧通透。"
+      },
+      {
+        "name": "menu-contrast-during-transition",
+        "value": "relative luminance threshold 0.16",
+        "purpose": "失焦后以实际填充亮度决定文字深浅，避免白字与浅色按压底重叠。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Home Start",
+      "kind": "button",
+      "refersTo": "menu-button",
+      "description": "Unity 世界空间菜单按钮的视觉预览。HTML 仅展示状态样式；运行时使用 LegacyRuntime.ttf、Graphic、BoxCollider 与 C# 动作逻辑，预览以 Arial 近似字体，不执行游戏动作。",
+      "html": "<button class=\"ds-menu-button\" style=\"width:300px\">START GAME</button>",
+      "css": ".ds-menu-button{background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font:400 30px/1.15 Arial,sans-serif;height:76px;border:1.5px solid rgb(21% 57% 47%);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);transition:transform .1s,color .1s,background .1s}.ds-menu-button:focus-visible{background:rgb(100% 34% 23%);color:rgb(1.2% 3.3% 3%);outline:2px solid rgb(100% 34% 23%);transform:scale(1.015)}.ds-menu-button:hover{background:rgb(100% 45.88% 36.86%);color:rgb(1.2% 3.3% 3%);border-color:white;transform:scale(1.055)}.ds-menu-button:active{background:rgb(100% 83% 53%);color:rgb(1.2% 3.3% 3%);transform:scale(.94)}"
+    },
+    {
+      "name": "How To Play",
+      "kind": "button",
+      "refersTo": "menu-button",
+      "description": "Unity 世界空间菜单按钮的视觉预览。HTML 仅展示状态样式；运行时使用 LegacyRuntime.ttf、Graphic、BoxCollider 与 C# 动作逻辑，预览以 Arial 近似字体，不执行游戏动作。",
+      "html": "<button class=\"ds-menu-button\" style=\"width:300px\">HOW TO PLAY</button>",
+      "css": ".ds-menu-button{background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font:400 30px/1.15 Arial,sans-serif;height:76px;border:1.5px solid rgb(21% 57% 47%);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);transition:transform .1s,color .1s,background .1s}.ds-menu-button:focus-visible{background:rgb(100% 34% 23%);color:rgb(1.2% 3.3% 3%);outline:2px solid rgb(100% 34% 23%);transform:scale(1.015)}.ds-menu-button:hover{background:rgb(100% 45.88% 36.86%);color:rgb(1.2% 3.3% 3%);border-color:white;transform:scale(1.055)}.ds-menu-button:active{background:rgb(100% 83% 53%);color:rgb(1.2% 3.3% 3%);transform:scale(.94)}"
+    },
+    {
+      "name": "Exit",
+      "kind": "button",
+      "refersTo": "menu-button",
+      "description": "Unity 世界空间菜单按钮的视觉预览。HTML 仅展示状态样式；运行时使用 LegacyRuntime.ttf、Graphic、BoxCollider 与 C# 动作逻辑，预览以 Arial 近似字体，不执行游戏动作。",
+      "html": "<button class=\"ds-menu-button\" style=\"width:300px\">EXIT</button>",
+      "css": ".ds-menu-button{background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font:400 30px/1.15 Arial,sans-serif;height:76px;border:1.5px solid rgb(21% 57% 47%);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);transition:transform .1s,color .1s,background .1s}.ds-menu-button:focus-visible{background:rgb(100% 34% 23%);color:rgb(1.2% 3.3% 3%);outline:2px solid rgb(100% 34% 23%);transform:scale(1.015)}.ds-menu-button:hover{background:rgb(100% 45.88% 36.86%);color:rgb(1.2% 3.3% 3%);border-color:white;transform:scale(1.055)}.ds-menu-button:active{background:rgb(100% 83% 53%);color:rgb(1.2% 3.3% 3%);transform:scale(.94)}"
+    },
+    {
+      "name": "Guide Back",
+      "kind": "button",
+      "refersTo": "menu-button",
+      "description": "Unity 世界空间菜单按钮的视觉预览。HTML 仅展示状态样式；运行时使用 LegacyRuntime.ttf、Graphic、BoxCollider 与 C# 动作逻辑，预览以 Arial 近似字体，不执行游戏动作。 本版位于左图下方，Canvas 中心 (-501, -355)。",
+      "html": "<button class=\"ds-menu-button\" style=\"width:250px\">BACK</button>",
+      "css": ".ds-menu-button{background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font:400 30px/1.15 Arial,sans-serif;height:76px;border:1.5px solid rgb(21% 57% 47%);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);transition:transform .1s,color .1s,background .1s}.ds-menu-button:focus-visible{background:rgb(100% 34% 23%);color:rgb(1.2% 3.3% 3%);outline:2px solid rgb(100% 34% 23%);transform:scale(1.015)}.ds-menu-button:hover{background:rgb(100% 45.88% 36.86%);color:rgb(1.2% 3.3% 3%);border-color:white;transform:scale(1.055)}.ds-menu-button:active{background:rgb(100% 83% 53%);color:rgb(1.2% 3.3% 3%);transform:scale(.94)}"
+    },
+    {
+      "name": "Guide Start",
+      "kind": "button",
+      "refersTo": "menu-button",
+      "description": "Unity 世界空间菜单按钮的视觉预览。HTML 仅展示状态样式；运行时使用 LegacyRuntime.ttf、Graphic、BoxCollider 与 C# 动作逻辑，预览以 Arial 近似字体，不执行游戏动作。 本版位于右侧规则区下方，Canvas 中心 (495, -355)。",
+      "html": "<button class=\"ds-menu-button\" style=\"width:340px\">START GAME</button>",
+      "css": ".ds-menu-button{background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font:400 30px/1.15 Arial,sans-serif;height:76px;border:1.5px solid rgb(21% 57% 47%);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);transition:transform .1s,color .1s,background .1s}.ds-menu-button:focus-visible{background:rgb(100% 34% 23%);color:rgb(1.2% 3.3% 3%);outline:2px solid rgb(100% 34% 23%);transform:scale(1.015)}.ds-menu-button:hover{background:rgb(100% 45.88% 36.86%);color:rgb(1.2% 3.3% 3%);border-color:white;transform:scale(1.055)}.ds-menu-button:active{background:rgb(100% 83% 53%);color:rgb(1.2% 3.3% 3%);transform:scale(.94)}"
+    },
+    {
+      "name": "Guide Rule Grid",
+      "kind": "custom",
+      "description": "本版说明页右侧两列两行规则区的静态样式预览；左侧独立插画未在此片段模拟。浏览器 Arial 仅近似 Unity LegacyRuntime.ttf。 两列左缘对应 Canvas x=-50/335，各宽330；底部跨列文字宽715。",
+      "html": "<div class=\"ds-guide-rules\"><section class=\"ds-guide-rule ds-guide-cyan\"><h3>LEFT / CYAN</h3><p>Cut cyan signals<br>with your left blade.</p></section><section class=\"ds-guide-rule ds-guide-amber\"><h3>RIGHT / AMBER</h3><p>Cut amber signals<br>with your right blade.</p></section><section class=\"ds-guide-rule ds-guide-violet\"><h3>DUAL / VIOLET</h3><p>Use one hand, then the<br>other within 0.9s.</p></section><section class=\"ds-guide-rule ds-guide-red\"><h3>AVOID / RED</h3><p>Let red hazards pass.<br>Never cut them.</p></section><p class=\"ds-guide-life\">Wrong hand or missed non-red signal: lose 1 life.</p><p class=\"ds-guide-input\">Left click: cyan blade / Right click: amber blade</p></div>",
+      "css": ".ds-guide-rules{display:grid;grid-template-columns:330px 330px;column-gap:55px;grid-template-rows:191px 191px auto auto;background:rgb(1.2% 3.3% 3%);color:rgb(87% 97% 93%);font-family:Arial,sans-serif}.ds-guide-rule h3{font-size:28px;font-weight:400;line-height:1.15;margin:0;height:38px}.ds-guide-rule p{font-size:27px;font-weight:400;line-height:1.15;margin:0;height:92px}.ds-guide-cyan h3{color:rgb(6% 86% 100%)}.ds-guide-amber h3{color:rgb(100% 55% 12%)}.ds-guide-violet h3{color:rgb(78% 52% 100%)}.ds-guide-red h3{color:rgb(100% 12% 18%)}.ds-guide-life{grid-column:1/3;font-size:25px;line-height:1.15;margin:0 0 20px}.ds-guide-input{grid-column:1/3;font-size:24px;line-height:1.15;color:rgb(60% 80% 72%);margin:0}"
+    }
+  ],
+  "narrative": {
+    "northStar": "异常侵入真实房间",
+    "overview": "这是一个发生在真实房间中的 PICO MR 异常收容游戏。此前“纯沉浸式深空、不显示透视”的方向已经过时；当前权威方案是在玩法阶段显示真实房间透视，只把虫洞、可切目标、左右流星和必要仪表叠加到空间中。PICO Scene Capture 只读取天花板锚点高度，用来决定虫洞和顶面感应网格的 Y 坐标；它不得移动玩家、竞技场 X/Z 或世界空间 UI。\n\n2026-09-08 本次修订按用户要求恢复旧封面的深绿星云、CRT 扫描线、珊瑚色细线标题与斜切光痕。`STELLAR CLEAVE / ANOMALY PROTOCOL` 是封面的可见名称；主封面不再以天花板虫洞为中心构图。说明页使用同系近黑底与充分留白，左侧插画独立成版，右侧四条规则分两列排列。这个不透明启动阶段不改变玩法阶段的 MR 定位。",
+    "keyCharacteristics": [
+      "主封面恢复深绿星云与珊瑚斜切标识；说明插画保留实际游戏的虫洞、晶体和左右手颜色语义。",
+      "流星位于玩家身体两侧，进入或重置时确定水平朝向；发射区随平移更新，不跟随转头。",
+      "封面插画与标题来自 Tripo Nano Banana；操作按钮和规则文字由 Unity 实时绘制。",
+      "UI 固定在世界空间；选中、悬停、按下与页面切换都有明确反馈。"
+    ],
+    "rules": [],
+    "dos": [
+      "**Do** 保留主封面的深绿星云、珊瑚细线标题与斜切光痕；说明插画中的虫洞、晶体与青左琥珀右规则对应实际游戏。",
+      "**Do** 让流星发射区随玩家平移、沿进入或重置时确定的固定左右轴分布；已发射粒子与拖尾保留世界空间。",
+      "**Do** 保持五个可见按钮可操作，并为焦点、悬停、按下及完成提供可见反馈。",
+      "**Do** 将固定世界空间与标题独有的 1.35 倍缩放保留为两个独立约束。",
+      "**Do** 在文档和交付中区分代码已实现、桌面 QA 已验收与 PICO 环境待验证。"
+    ],
+    "donts": [
+      "**Don't** 把按钮烘焙进背景；生成英文标题被允许不代表静态图片可以替代真实控件。",
+      "**Don't** 让说明页的装饰插画承担唯一的规则解释；左图单独成版，规则两列留白，关键文案保持清楚可读。",
+      "**Don't** 使用逐帧视线方向旋转流星发射区，或把固定水平朝向描述成真实躯干追踪。",
+      "**Don't** 将启动阶段的不透明插画扩展为 MR 玩法的星空或虚拟房间背景。",
+      "**Don't** 因天花板定位或头部旋转移动玩家、Arena X/Z 或世界空间 UI。"
+    ]
+  }
+}

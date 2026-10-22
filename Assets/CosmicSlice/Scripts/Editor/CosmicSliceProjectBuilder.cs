@@ -116,9 +116,9 @@ namespace CosmicSlice.Editor
         private static void ConfigureProject()
         {
             PlayerSettings.companyName = "Anomaly Lab";
-            PlayerSettings.productName = "星际切割";
+            PlayerSettings.productName = "STELLAR CLEAVE";
             PlayerSettings.bundleVersion = "0.1.7";
-            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.anomalylab.cosmicslice");
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.anomalylab.cosmicslice.en");
             PlayerSettings.Android.bundleVersionCode = 8;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
@@ -140,7 +140,7 @@ namespace CosmicSlice.Editor
             var appIcon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/AppIcon/AppIcon.png");
             if (appIcon == null)
             {
-                throw new InvalidOperationException("Missing 星际切割 application icon at Assets/AppIcon/AppIcon.png.");
+                throw new InvalidOperationException("Missing STELLAR CLEAVE application icon at Assets/AppIcon/AppIcon.png.");
             }
             PlayerSettings.SetIcons(NamedBuildTarget.Android, new[] { appIcon }, IconKind.Application);
 

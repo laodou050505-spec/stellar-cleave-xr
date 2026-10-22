@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Anomaly Lab
-  productName: "\u661F\u9645\u5207\u5272"
+  productName: STELLAR CLEAVE
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.12156863, g: 0.12156863, b: 0.1254902, a: 1}
@@ -171,7 +171,7 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.anomalylab.cosmicslice
+    Android: com.anomalylab.cosmicslice.en
   buildNumber:
     Standalone: 0
     VisionOS: 0
