@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &50015639
+--- !u!1 &307253672
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,130 +127,97 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 50015642}
-  - component: {fileID: 50015641}
-  - component: {fileID: 50015640}
+  - component: {fileID: 307253676}
+  - component: {fileID: 307253675}
+  - component: {fileID: 307253674}
+  - component: {fileID: 307253673}
   m_Layer: 0
-  m_Name: XR Origin - Floor
+  m_Name: Cosmic Slice - Complete Runtime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &50015640
+--- !u!114 &307253673
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 50015639}
+  m_GameObject: {fileID: 307253672}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd9f82377aeb9704193bd866d119aaa5, type: 3}
+  m_Script: {fileID: 11500000, guid: 2f15314c4eee7415798349dfd3f334f6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.XR.PXR_Manager
-  screenFade: 0
-  eyeTracking: 0
-  trackingMode: -1
-  sharpeningMode: 0
-  sharpeningEnhance: 0
-  faceTracking: 0
-  lipsyncTracking: 0
-  lateLatching: 0
-  latelatchingDebug: 0
-  bodyTracking: 0
-  foveationLevel: -1
-  adaptiveResolution: 0
-  eyeFoveationLevel: -1
-  foveatedRenderingMode: 0
-  openMRC: 0
-  foregroundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  backgroundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  backgroundCamObj: {fileID: 0}
-  foregroundCamObj: {fileID: 0}
-  mrcBackgroundRT: {fileID: 0}
-  mrcForegroundRT: {fileID: 0}
-  adaptiveResolutionPowerSetting: 1
-  minEyeTextureScale: 0.7
-  maxEyeTextureScale: 1.26
-  enableSuperResolution: 0
-  useRecommendedAntiAliasingLevel: 1
-  usePremultipliedAlpha: 0
-  useLayerBlend: 0
-  srcColor: 1
-  dstColor: 1
-  srcAlpha: 1
-  dstAlpha: 1
---- !u!114 &50015641
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoCeilingLocator
+--- !u!114 &307253674
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 50015639}
+  m_GameObject: {fileID: 307253672}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
+  m_Script: {fileID: 11500000, guid: 360df0391980b4ec7a00887f3933432e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.XR.CoreUtils::Unity.XR.CoreUtils.XROrigin
-  m_Camera: {fileID: 1066940855}
-  m_OriginBaseGameObject: {fileID: 50015639}
-  m_CameraFloorOffsetObject: {fileID: 324022457}
-  m_RequestedTrackingOriginMode: 2
-  m_CameraYOffset: 0
---- !u!4 &50015642
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.CosmicSliceGame
+  hudBackdrop: {fileID: 2800000, guid: 07010dcb2e93840d28f75f54a8fecb0d, type: 3}
+  spacePanorama: {fileID: 2800000, guid: 782765ae463ab4687ae1e06a2e5ba8aa, type: 3}
+  spaceSetDressingModels:
+  - {fileID: 919132149155446097, guid: 631261fde1a72401ea8b948a4418d33f, type: 3}
+  - {fileID: 919132149155446097, guid: 6ad0d448b71d04ba88c17c7a9bc90ddf, type: 3}
+  - {fileID: 919132149155446097, guid: f44c4d387a3664f648f706a8ed00790b, type: 3}
+  - {fileID: 919132149155446097, guid: 4c3b7daa003e44717a1746e0ec46d49d, type: 3}
+  - {fileID: 919132149155446097, guid: a670b7dec717c44a98005080f0f80654, type: 3}
+  - {fileID: 919132149155446097, guid: e580969a7a7c447299bed243445dd649, type: 3}
+  - {fileID: 919132149155446097, guid: 3c86857a80997486d9d65feec55e4756, type: 3}
+  - {fileID: 919132149155446097, guid: da35167a923a14540822a3198dc9eac5, type: 3}
+  - {fileID: 919132149155446097, guid: 44f08253a8305410baa6328d998da868, type: 3}
+  additiveShader: {fileID: 4800000, guid: 202959154bbb04cd78bb6597a2bef2d7, type: 3}
+  particleShader: {fileID: 4800000, guid: d04ebdd3f7daf41ce9f30379636334f5, type: 3}
+  meteorHeadShader: {fileID: 4800000, guid: 10230f065cf774319aa166cdc097a374, type: 3}
+  meteorTrailShader: {fileID: 4800000, guid: 9ad97d950578a4c4db7910d185b14d4e, type: 3}
+  coverFeatherShader: {fileID: 4800000, guid: 482187cf4616e4e658c02aeff4a0d845, type: 3}
+  portalShader: {fileID: 4800000, guid: b09dd70684a5a45efab79236e38d0342, type: 3}
+  nebulaShader: {fileID: 4800000, guid: 4f0915195fba4f6d9558fca5be8993ce, type: 3}
+  portalNebulaTexture: {fileID: 2800000, guid: 51a4c2e51af14eedb5f98c91b4d92f4b, type: 3}
+  spaceBackdropShader: {fileID: 4800000, guid: a1254621db8584588bd63fd9618af1ca, type: 3}
+  standardShader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+  music: {fileID: 8300000, guid: 1ee7312333a784f608ef42cc4d487a9a, type: 3}
+  portalLoop: {fileID: 8300000, guid: 0f18528d57d764652ac0c1e111384d83, type: 3}
+  bladeWhoosh: {fileID: 8300000, guid: e8476987376c0445d9f6fa523fda288f, type: 3}
+  positive: {fileID: 8300000, guid: 0efb18279bb3f4364b49ddae1c21902f, type: 3}
+  negative: {fileID: 8300000, guid: e5cd5f44aeb9f49f1ae8e3b869f0c99f, type: 3}
+  explosion: {fileID: 8300000, guid: 26ad2838cedb4464f8a85bbafd4fe4fd, type: 3}
+--- !u!114 &307253675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 307253672}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 843d003bc89c04a27a482fc9eafdf3c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoDesktopRuntimeGate
+--- !u!4 &307253676
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 50015639}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -4.65}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 324022458}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &324022457
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 324022458}
-  m_Layer: 0
-  m_Name: Camera Offset
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &324022458
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324022457}
+  m_GameObject: {fileID: 307253672}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1066940852}
-  m_Father: {fileID: 50015642}
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1066940851
+--- !u!1 &377504923
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -258,10 +225,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1066940852}
-  - component: {fileID: 1066940855}
-  - component: {fileID: 1066940854}
-  - component: {fileID: 1066940853}
+  - component: {fileID: 377504924}
+  - component: {fileID: 377504927}
+  - component: {fileID: 377504926}
+  - component: {fileID: 377504925}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -269,28 +236,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1066940852
+--- !u!4 &377504924
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066940851}
+  m_GameObject: {fileID: 377504923}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.65, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 324022458}
+  m_Father: {fileID: 1381829603}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1066940853
+--- !u!114 &377504925
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066940851}
+  m_GameObject: {fileID: 377504923}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c2fadf230d1919748a9aa21d40f74619, type: 3}
@@ -305,12 +272,12 @@ MonoBehaviour:
       m_Name: Head Position
       m_Type: 0
       m_ExpectedControlType: 
-      m_Id: 839290c8-2b04-4ab8-b80e-735c295e8a93
+      m_Id: 5f055890-1d4e-41ee-b50a-82ad1c8af38b
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings:
       - m_Name: 
-        m_Id: b8febe02-2828-4e68-9c8d-a765d28c4714
+        m_Id: 0c2d03d8-3e0d-48d2-b52c-a62263c9791f
         m_Path: <XRHMD>/centerEyePosition
         m_Interactions: 
         m_Processors: 
@@ -325,12 +292,12 @@ MonoBehaviour:
       m_Name: Head Rotation
       m_Type: 0
       m_ExpectedControlType: 
-      m_Id: ac8b28e8-91fd-44c1-847d-3fa57aca288b
+      m_Id: c2c3b952-d7ab-46de-8c8c-e34be5477758
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings:
       - m_Name: 
-        m_Id: fad54d0f-ff59-4801-a0da-7a2bcaad89de
+        m_Id: d57387f3-82f9-4f52-a46c-c2b96008a157
         m_Path: <XRHMD>/centerEyeRotation
         m_Interactions: 
         m_Processors: 
@@ -345,7 +312,7 @@ MonoBehaviour:
       m_Name: Tracking State
       m_Type: 0
       m_ExpectedControlType: Integer
-      m_Id: b473664d-739d-4693-a511-54938824ee2a
+      m_Id: 846f1044-3fd0-48ca-af22-c637cf3ac357
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings: []
@@ -355,7 +322,7 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: bdabe99d-7124-4e61-98a1-93da281ed6eb
+    m_Id: 1ee4a744-f2f9-4081-b186-ebeac6c7d585
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
@@ -364,26 +331,26 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: 5b360e01-cb15-4538-bc7a-061d479206ca
+    m_Id: a9157ebc-b37a-47f7-8d3d-32ad71c29c51
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
---- !u!81 &1066940854
+--- !u!81 &377504926
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066940851}
+  m_GameObject: {fileID: 377504923}
   m_Enabled: 1
---- !u!20 &1066940855
+--- !u!20 &377504927
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066940851}
+  m_GameObject: {fileID: 377504923}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -428,7 +395,7 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!1 &1854433761
+--- !u!1 &457149571
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -436,99 +403,132 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1854433765}
-  - component: {fileID: 1854433764}
-  - component: {fileID: 1854433763}
-  - component: {fileID: 1854433762}
+  - component: {fileID: 457149574}
+  - component: {fileID: 457149573}
+  - component: {fileID: 457149572}
   m_Layer: 0
-  m_Name: Cosmic Slice - Complete Runtime
+  m_Name: XR Origin - Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1854433762
+--- !u!114 &457149572
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854433761}
+  m_GameObject: {fileID: 457149571}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f15314c4eee7415798349dfd3f334f6, type: 3}
+  m_Script: {fileID: 11500000, guid: fd9f82377aeb9704193bd866d119aaa5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoCeilingLocator
---- !u!114 &1854433763
+  m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.XR.PXR_Manager
+  screenFade: 0
+  eyeTracking: 0
+  trackingMode: -1
+  sharpeningMode: 0
+  sharpeningEnhance: 0
+  faceTracking: 0
+  lipsyncTracking: 0
+  lateLatching: 0
+  latelatchingDebug: 0
+  bodyTracking: 0
+  foveationLevel: -1
+  adaptiveResolution: 0
+  eyeFoveationLevel: -1
+  foveatedRenderingMode: 0
+  openMRC: 0
+  foregroundLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  backgroundLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  backgroundCamObj: {fileID: 0}
+  foregroundCamObj: {fileID: 0}
+  mrcBackgroundRT: {fileID: 0}
+  mrcForegroundRT: {fileID: 0}
+  adaptiveResolutionPowerSetting: 1
+  minEyeTextureScale: 0.7
+  maxEyeTextureScale: 1.26
+  enableSuperResolution: 0
+  useRecommendedAntiAliasingLevel: 1
+  usePremultipliedAlpha: 0
+  useLayerBlend: 0
+  srcColor: 1
+  dstColor: 1
+  srcAlpha: 1
+  dstAlpha: 1
+--- !u!114 &457149573
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854433761}
+  m_GameObject: {fileID: 457149571}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 360df0391980b4ec7a00887f3933432e, type: 3}
+  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.CosmicSliceGame
-  hudBackdrop: {fileID: 2800000, guid: 07010dcb2e93840d28f75f54a8fecb0d, type: 3}
-  spacePanorama: {fileID: 2800000, guid: 782765ae463ab4687ae1e06a2e5ba8aa, type: 3}
-  spaceSetDressingModels:
-  - {fileID: 919132149155446097, guid: 631261fde1a72401ea8b948a4418d33f, type: 3}
-  - {fileID: 919132149155446097, guid: 6ad0d448b71d04ba88c17c7a9bc90ddf, type: 3}
-  - {fileID: 919132149155446097, guid: f44c4d387a3664f648f706a8ed00790b, type: 3}
-  - {fileID: 919132149155446097, guid: 4c3b7daa003e44717a1746e0ec46d49d, type: 3}
-  - {fileID: 919132149155446097, guid: a670b7dec717c44a98005080f0f80654, type: 3}
-  - {fileID: 919132149155446097, guid: e580969a7a7c447299bed243445dd649, type: 3}
-  - {fileID: 919132149155446097, guid: 3c86857a80997486d9d65feec55e4756, type: 3}
-  - {fileID: 919132149155446097, guid: da35167a923a14540822a3198dc9eac5, type: 3}
-  - {fileID: 919132149155446097, guid: 44f08253a8305410baa6328d998da868, type: 3}
-  additiveShader: {fileID: 4800000, guid: 202959154bbb04cd78bb6597a2bef2d7, type: 3}
-  particleShader: {fileID: 4800000, guid: d04ebdd3f7daf41ce9f30379636334f5, type: 3}
-  meteorHeadShader: {fileID: 4800000, guid: 10230f065cf774319aa166cdc097a374, type: 3}
-  meteorTrailShader: {fileID: 4800000, guid: 9ad97d950578a4c4db7910d185b14d4e, type: 3}
-  coverFeatherShader: {fileID: 4800000, guid: 482187cf4616e4e658c02aeff4a0d845, type: 3}
-  portalShader: {fileID: 4800000, guid: b09dd70684a5a45efab79236e38d0342, type: 3}
-  nebulaShader: {fileID: 4800000, guid: 4f0915195fba4f6d9558fca5be8993ce, type: 3}
-  portalNebulaTexture: {fileID: 2800000, guid: 51a4c2e51af14eedb5f98c91b4d92f4b, type: 3}
-  spaceBackdropShader: {fileID: 4800000, guid: a1254621db8584588bd63fd9618af1ca, type: 3}
-  standardShader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
-  music: {fileID: 8300000, guid: 1ee7312333a784f608ef42cc4d487a9a, type: 3}
-  portalLoop: {fileID: 8300000, guid: 0f18528d57d764652ac0c1e111384d83, type: 3}
-  bladeWhoosh: {fileID: 8300000, guid: e8476987376c0445d9f6fa523fda288f, type: 3}
-  positive: {fileID: 8300000, guid: 0efb18279bb3f4364b49ddae1c21902f, type: 3}
-  negative: {fileID: 8300000, guid: e5cd5f44aeb9f49f1ae8e3b869f0c99f, type: 3}
-  explosion: {fileID: 8300000, guid: 26ad2838cedb4464f8a85bbafd4fe4fd, type: 3}
---- !u!114 &1854433764
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854433761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 843d003bc89c04a27a482fc9eafdf3c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CosmicSlice.PicoDesktopRuntimeGate
---- !u!4 &1854433765
+  m_EditorClassIdentifier: Unity.XR.CoreUtils::Unity.XR.CoreUtils.XROrigin
+  m_Camera: {fileID: 377504927}
+  m_OriginBaseGameObject: {fileID: 457149571}
+  m_CameraFloorOffsetObject: {fileID: 1381829602}
+  m_RequestedTrackingOriginMode: 2
+  m_CameraYOffset: 0
+--- !u!4 &457149574
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1854433761}
+  m_GameObject: {fileID: 457149571}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -4.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1381829603}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1381829602
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1381829603}
+  m_Layer: 0
+  m_Name: Camera Offset
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1381829603
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1381829602}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
+  m_Children:
+  - {fileID: 377504924}
+  m_Father: {fileID: 457149574}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 50015642}
-  - {fileID: 1854433765}
+  - {fileID: 457149574}
+  - {fileID: 307253676}
