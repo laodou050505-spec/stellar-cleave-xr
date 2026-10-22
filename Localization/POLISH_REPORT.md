@@ -309,3 +309,42 @@ PICO 专属提示已保留 `#if UNITY_ANDROID && !UNITY_EDITOR` 过滤 ✓
 ---
 
 *报告更新：2026-10-22 精修 v3 / StellarCleave-EN 精修代理*
+
+---
+
+## v3 精修 - 阶段 B：硬表面能量剑柄 v2（commit 8746f00）
+
+### EnergyHilt.glb v2 重建
+
+| 参数 | 值 |
+|------|-----|
+| 三角面数 | 5570（目标 4k-7k ✓） |
+| 文件大小 | 172 KB |
+| Blender 版本 | 5.2.0 LTS |
+| 修改器 | EDGE_SPLIT 30°（锐边法线分离） |
+| 轴向 | +Y=发射口(0.090m) / −Y=护手(−0.085m) |
+| Unity 坐标对齐 | localPos=(0,0,−0.09) + Euler(90,0,0)，发射口对齐 guard torus ✓ |
+
+**结构从下到上（按规范 D）：**
+1. 球形护手尾塞 + 2 道颈环（枪灰钛合金）
+2. 6 道防滑凸环握把（深色橡胶，metallic 0 / roughness 0.7）
+3. 开关区：护罩底板 + 圆形按钮 + LED 指示灯（发光，运行时着色）
+4. 能量核心观察窗 × 2（对称 0°/180°，发光长条，M_EnergyCore 材质）
+5. 5 道细横槽散热格栅（拉丝钢环，roughness 0.20）
+6. 外扩喇叭形发射口 + 内圈（枪灰钛合金）
+
+**材质区（3 主 + 1 发光）：**
+- M_TitanGray：metallic 0.90 / roughness 0.35
+- M_BrushedSteel：metallic 0.95 / roughness 0.20
+- M_DarkRubber：metallic 0.00 / roughness 0.70
+- M_EnergyCore / M_LED_Indicator：自发光，运行时 Unity 按左青/右琥珀语义覆盖
+
+**渲染自检路径：**
+- /tmp/hilt_v2_front_right.png
+- /tmp/hilt_v2_front_left.png
+- /tmp/hilt_v2_top.png
+
+### QA 结果
+- 运行方式：macOS 构建（BatchBuildMac，commit 8746f00）+ -cosmic-qa 模式实跑
+- 总计：128/128 通过，0 失败
+- 报告：/tmp/cosmic-qa2-1792664615/qa-report.json
