@@ -50,10 +50,10 @@ MonoBehaviour:
   mrSafeguard: 1
   enableRecommendMSAA: 0
   recommendSubsamping: 0
-  recommendMSAA: 1
+  recommendMSAA: 0
   validationFFREnabled: 0
   validationETFREnabled: 0
-  portalInited: 1
+  portalInited: 0
   isDataCollectionDisabled: 0
   portalFirstSelected: 0
   isSpatialAdapter: 0
